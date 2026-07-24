@@ -40,17 +40,31 @@ pub fn resolve_hdc_path(explicit: Option<&str>) -> Result<PathBuf, Error> {
         return Ok(path);
     }
 
-    Err(Error::HdcNotFound(PathBuf::from(
-        explicit.unwrap_or("hdc"),
-    )))
+    Err(Error::HdcNotFound(PathBuf::from(explicit.unwrap_or("hdc"))))
 }
 
 fn find_command(candidate: &str) -> Option<PathBuf> {
     let candidate_path = Path::new(candidate);
     if candidate_path.components().count() > 1 || candidate_path.is_absolute() {
-        return candidate_path
-            .is_file()
-            .then(|| candidate_path.to_path_buf());
+        if candidate_path.is_file() {
+            return Some(candidate_path.to_path_buf());
+        }
+        if candidate_path.is_dir() {
+            for relative in [
+                "hdc.exe",
+                "hdc",
+                "toolchains/hdc.exe",
+                "toolchains/hdc",
+                "sdk/default/openharmony/toolchains/hdc.exe",
+                "sdk/default/openharmony/toolchains/hdc",
+            ] {
+                let nested = candidate_path.join(relative);
+                if nested.is_file() {
+                    return Some(nested);
+                }
+            }
+        }
+        return None;
     }
 
     let path_var = env::var_os("PATH")?;

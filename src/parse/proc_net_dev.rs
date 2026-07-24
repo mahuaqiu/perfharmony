@@ -37,22 +37,18 @@ pub fn parse_proc_net_dev(text: &str) -> Result<NetDevSnapshot, Error> {
 
             // 需要至少 9 列（RX 数据为前 8 列，TX 数据从第 9 列开始）
             if parts.len() < 9 {
-                return Err(Error::ParseFailed(
-                    format!("接口 {} 列数不足", iface_name),
-                ));
+                return Err(Error::ParseFailed(format!("接口 {} 列数不足", iface_name)));
             }
 
             // RX_bytes 是第 1 列（冒号后第一个数据）
-            let iface_rx = parts[0].parse::<u64>()
-                .map_err(|_| Error::ParseFailed(
-                    format!("接口 {} RX_bytes 解析失败", iface_name),
-                ))?;
+            let iface_rx = parts[0].parse::<u64>().map_err(|_| {
+                Error::ParseFailed(format!("接口 {} RX_bytes 解析失败", iface_name))
+            })?;
 
             // TX_bytes 是第 9 列
-            let iface_tx = parts[8].parse::<u64>()
-                .map_err(|_| Error::ParseFailed(
-                    format!("接口 {} TX_bytes 解析失败", iface_name),
-                ))?;
+            let iface_tx = parts[8].parse::<u64>().map_err(|_| {
+                Error::ParseFailed(format!("接口 {} TX_bytes 解析失败", iface_name))
+            })?;
 
             rx_bytes += iface_rx;
             tx_bytes += iface_tx;
@@ -122,15 +118,15 @@ mod tests {
             tx_bytes: 5000000,
         };
         let curr = NetDevSnapshot {
-            rx_bytes: 5000000,  // 计数器重置，减少了
-            tx_bytes: 8000000,  // 正常增加
+            rx_bytes: 5000000, // 计数器重置，减少了
+            tx_bytes: 8000000, // 正常增加
         };
 
         let (rx_kbps, tx_kbps) = diff_net_kbps(&prev, &curr, 10.0);
 
         // RX：计数器重置，使用 curr = 5000000 字节 = 4882.8125 KB / 10s = 488.28125 KB/s
         // TX：正常差值 = 3000000 字节 = 2929.6875 KB / 10s = 292.96875 KB/s
-        assert!(rx_kbps > 400.0);  // 大约 488 KB/s
+        assert!(rx_kbps > 400.0); // 大约 488 KB/s
         assert!((tx_kbps - 292.96875).abs() < 0.1);
     }
 }

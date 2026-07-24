@@ -16,7 +16,14 @@ pub struct CpuStatSnapshot {
 impl CpuStatSnapshot {
     /// 计算总时间（所有字段之和）
     pub fn total(&self) -> u64 {
-        self.user + self.nice + self.system + self.idle + self.iowait + self.irq + self.softirq + self.steal
+        self.user
+            + self.nice
+            + self.system
+            + self.idle
+            + self.iowait
+            + self.irq
+            + self.softirq
+            + self.steal
     }
 
     /// 计算忙碌时间（总时间 - idle - iowait）
@@ -40,21 +47,29 @@ pub fn parse_proc_stat(text: &str) -> Result<CpuStatSnapshot, Error> {
     }
 
     // 解析各字段
-    let user = parts[1].parse::<u64>()
+    let user = parts[1]
+        .parse::<u64>()
         .map_err(|_| Error::ParseFailed("user 字段解析失败".to_string()))?;
-    let nice = parts[2].parse::<u64>()
+    let nice = parts[2]
+        .parse::<u64>()
         .map_err(|_| Error::ParseFailed("nice 字段解析失败".to_string()))?;
-    let system = parts[3].parse::<u64>()
+    let system = parts[3]
+        .parse::<u64>()
         .map_err(|_| Error::ParseFailed("system 字段解析失败".to_string()))?;
-    let idle = parts[4].parse::<u64>()
+    let idle = parts[4]
+        .parse::<u64>()
         .map_err(|_| Error::ParseFailed("idle 字段解析失败".to_string()))?;
-    let iowait = parts[5].parse::<u64>()
+    let iowait = parts[5]
+        .parse::<u64>()
         .map_err(|_| Error::ParseFailed("iowait 字段解析失败".to_string()))?;
-    let irq = parts[6].parse::<u64>()
+    let irq = parts[6]
+        .parse::<u64>()
         .map_err(|_| Error::ParseFailed("irq 字段解析失败".to_string()))?;
-    let softirq = parts[7].parse::<u64>()
+    let softirq = parts[7]
+        .parse::<u64>()
         .map_err(|_| Error::ParseFailed("softirq 字段解析失败".to_string()))?;
-    let steal = parts[8].parse::<u64>()
+    let steal = parts[8]
+        .parse::<u64>()
         .map_err(|_| Error::ParseFailed("steal 字段解析失败".to_string()))?;
 
     Ok(CpuStatSnapshot {

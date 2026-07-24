@@ -3,8 +3,13 @@
 from ._native import (
     HdcError,
     HdcErrorKind,
+    Monitor,
+    MonitorResult,
+    ProcessFilter,
+    Sample,
     TargetInfo,
     __version__,
+    list_processes,
     list_targets,
     parse_targets_for_test,
 )
@@ -12,8 +17,13 @@ from ._native import (
 __all__ = [
     "HdcError",
     "HdcErrorKind",
+    "Monitor",
+    "MonitorResult",
+    "ProcessFilter",
+    "Sample",
     "TargetInfo",
     "__version__",
     "list_targets",
+    "list_processes",
     "parse_targets_for_test",
 ]

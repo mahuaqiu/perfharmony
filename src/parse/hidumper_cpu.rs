@@ -29,7 +29,7 @@ pub fn parse_hidumper_cpuusage(text: &str) -> Result<HidumperCpuUsage, Error> {
         .map_err(|_| Error::ParseFailed("正则编译失败".to_string()))?;
     let system_regex = Regex::new(r"Kernel\s+space:\s*(\d+(?:\.\d+)?)%")
         .map_err(|_| Error::ParseFailed("正则编译失败".to_string()))?;
-    let idle_regex = Regex::new(r"iowait:\s*(\d+(?:\.\d+)?)%")
+    let idle_regex = Regex::new(r"(?i)(?:Idle|iowait):\s*(\d+(?:\.\d+)?)%")
         .map_err(|_| Error::ParseFailed("正则编译失败".to_string()))?;
 
     let total_str = total_regex
@@ -38,7 +38,8 @@ pub fn parse_hidumper_cpuusage(text: &str) -> Result<HidumperCpuUsage, Error> {
         .map(|m| m.as_str())
         .ok_or(Error::ParseFailed("未找到 Total 字段".to_string()))?;
 
-    let total_percent = total_str.parse::<f64>()
+    let total_percent = total_str
+        .parse::<f64>()
         .map_err(|_| Error::ParseFailed("Total 数值解析失败".to_string()))?;
 
     let user_percent = user_regex

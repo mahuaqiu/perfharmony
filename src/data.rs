@@ -96,4 +96,3 @@ pub struct MonitorConfig {
     pub enable_network: bool,
     pub enable_thermal_power: bool,
 }
-

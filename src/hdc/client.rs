@@ -1,6 +1,9 @@
+use std::collections::HashMap;
 use std::io::Read;
 use std::path::PathBuf;
 use std::process::{Child, Command, Output, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -19,6 +22,21 @@ pub struct TargetInfo {
 pub struct HdcClient {
     path: PathBuf,
     default_timeout: Duration,
+}
+
+type TargetLocks = Mutex<HashMap<String, Arc<Mutex<()>>>>;
+
+fn target_locks() -> &'static TargetLocks {
+    static LOCKS: OnceLock<TargetLocks> = OnceLock::new();
+    LOCKS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn target_lock(udid: &str) -> Arc<Mutex<()>> {
+    let mut locks = target_locks().lock().expect("HDC target lock map poisoned");
+    locks
+        .entry(udid.to_string())
+        .or_insert_with(|| Arc::new(Mutex::new(())))
+        .clone()
 }
 
 impl HdcClient {
@@ -40,6 +58,30 @@ impl HdcClient {
         let output = self.run(
             &["-t", udid, "shell", command],
             Duration::from_secs(timeout_secs.max(1)),
+            None,
+        )?;
+        let text = output_text(&output);
+        if !output.status.success() {
+            return Err(classify_command_error(udid, text));
+        }
+        Ok(text)
+    }
+
+    /// 可被 Monitor stop() 中断的 shell 调用。
+    pub fn shell_with_cancel(
+        &self,
+        udid: &str,
+        command: &str,
+        timeout_secs: u64,
+        cancel: &AtomicBool,
+    ) -> Result<String, Error> {
+        if udid.trim().is_empty() {
+            return Err(Error::TargetOffline("udid 为空".to_string()));
+        }
+        let output = self.run(
+            &["-t", udid, "shell", command],
+            Duration::from_secs(timeout_secs.max(1)),
+            Some(cancel),
         )?;
         let text = output_text(&output);
         if !output.status.success() {
@@ -49,7 +91,7 @@ impl HdcClient {
     }
 
     pub fn list_targets_raw(&self) -> Result<String, Error> {
-        let output = self.run(&["list", "targets", "-v"], self.default_timeout)?;
+        let output = self.run(&["list", "targets", "-v"], self.default_timeout, None)?;
         let text = output_text(&output);
         if !output.status.success() {
             return Err(Error::CommandFailed(text));
@@ -61,7 +103,25 @@ impl HdcClient {
         ["-t", udid, "shell", command]
     }
 
-    fn run(&self, args: &[&str], timeout: Duration) -> Result<Output, Error> {
+    fn run(
+        &self,
+        args: &[&str],
+        timeout: Duration,
+        cancel: Option<&AtomicBool>,
+    ) -> Result<Output, Error> {
+        // 同一 UDID 的 Monitor、进程查询和其他 HDC 操作共用一把锁，避免设备端
+        // 命令交错；等待锁时仍检查取消标志，保证 stop() 有界退出。
+        let target_guard = args
+            .windows(2)
+            .find(|pair| pair[0] == "-t")
+            .map(|pair| target_lock(pair[1]));
+        let _target_lock_guard: Option<MutexGuard<'_, ()>> =
+            if let Some(lock) = target_guard.as_ref() {
+                Some(acquire_target_lock(lock, timeout, cancel)?)
+            } else {
+                None
+            };
+
         let mut child = Command::new(&self.path)
             .args(args)
             .stdout(Stdio::piped())
@@ -77,14 +137,47 @@ impl HdcClient {
 
         let deadline = Instant::now() + timeout;
         loop {
+            if cancel.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
+                terminate_child(&mut child);
+                return Err(Error::Cancelled(format!(
+                    "{} {:?}",
+                    self.path.display(),
+                    args
+                )));
+            }
             match child.try_wait()? {
                 Some(status) => return collect_output(child, status),
                 None if Instant::now() >= deadline => {
                     terminate_child(&mut child);
-                    return Err(Error::Timeout(format!("{} {:?}", self.path.display(), args)));
+                    return Err(Error::Timeout(format!(
+                        "{} {:?}",
+                        self.path.display(),
+                        args
+                    )));
                 }
                 None => thread::sleep(Duration::from_millis(20)),
             }
+        }
+    }
+}
+
+fn acquire_target_lock<'a>(
+    lock: &'a Arc<Mutex<()>>,
+    timeout: Duration,
+    cancel: Option<&AtomicBool>,
+) -> Result<MutexGuard<'a, ()>, Error> {
+    let deadline = Instant::now() + timeout;
+    loop {
+        if cancel.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
+            return Err(Error::Cancelled("等待 HDC target 锁".to_string()));
+        }
+        match lock.try_lock() {
+            Ok(guard) => return Ok(guard),
+            Err(std::sync::TryLockError::Poisoned(error)) => return Ok(error.into_inner()),
+            Err(std::sync::TryLockError::WouldBlock) if Instant::now() >= deadline => {
+                return Err(Error::Timeout("等待 HDC target 锁".to_string()));
+            }
+            Err(std::sync::TryLockError::WouldBlock) => thread::sleep(Duration::from_millis(10)),
         }
     }
 }
@@ -124,9 +217,15 @@ fn output_text(output: &Output) -> String {
 
 fn classify_command_error(udid: &str, text: String) -> Error {
     let lower = text.to_ascii_lowercase();
-    if ["offline", "unauthorized", "not found", "no devices", "not connected"]
-        .iter()
-        .any(|part| lower.contains(part))
+    if [
+        "offline",
+        "unauthorized",
+        "not found",
+        "no devices",
+        "not connected",
+    ]
+    .iter()
+    .any(|part| lower.contains(part))
     {
         Error::TargetOffline(format!("{udid}: {text}"))
     } else {
@@ -138,11 +237,14 @@ fn classify_command_error(udid: &str, text: String) -> Error {
 pub fn parse_list_targets(output: &str) -> Vec<TargetInfo> {
     let status_re = Regex::new(r"(?i)^(ready|offline|unauthorized|connected|disconnected)$")
         .expect("静态正则必须有效");
-    let connection_re = Regex::new(r"(?i)^(usb|tcp|uart|serial|wlan)$")
-        .expect("静态正则必须有效");
+    let connection_re = Regex::new(r"(?i)^(usb|tcp|uart|serial|wlan)$").expect("静态正则必须有效");
     let mut targets = Vec::new();
 
-    for line in output.lines().map(str::trim).filter(|line| !line.is_empty()) {
+    for line in output
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+    {
         let columns: Vec<&str> = line.split_whitespace().collect();
         if columns.len() < 2 {
             continue;

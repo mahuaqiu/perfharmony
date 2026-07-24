@@ -45,7 +45,8 @@ fn parse_meminfo_line(line: &str) -> Result<Option<u64>, Error> {
     }
 
     // parts[0] 是 "字段名:"（带冒号），parts[1] 是数值
-    let value = parts[1].parse::<u64>()
+    let value = parts[1]
+        .parse::<u64>()
         .map_err(|_| Error::ParseFailed("数值解析失败".to_string()))?;
     Ok(Some(value))
 }

@@ -53,4 +53,3 @@ mod tests {
         assert_eq!(buffer.dropped(), 1);
     }
 }
-

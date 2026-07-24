@@ -97,8 +97,8 @@ pub fn parse_hidumper_mem_pid(text: &str) -> Result<ProcessMem, Error> {
     let mut pss_kb = 0u64;
     let mut total_pss_kb = None;
 
-    let number_regex = Regex::new(r"(\d+)")
-        .map_err(|_| Error::ParseFailed("正则编译失败".to_string()))?;
+    let number_regex =
+        Regex::new(r"(\d+)").map_err(|_| Error::ParseFailed("正则编译失败".to_string()))?;
 
     for line in text.lines() {
         let line = line.trim();
