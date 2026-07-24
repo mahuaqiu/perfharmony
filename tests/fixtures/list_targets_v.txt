@@ -1,0 +1,6 @@
+List of devices attached
+127.0.0.1:5555    TCP    Ready    harmony-pc-demo    hdc
+ABCDEF123456      USB    Ready    phone-demo         hdc
+COM1              UART   Ready    harmony-uart       hdc
+ZXCVBN098765      USB    Offline  phone-offline      hdc
+malformed output without a status
