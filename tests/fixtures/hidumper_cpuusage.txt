@@ -1,0 +1,5 @@
+CPU usage for the last time:
+Total: 35%
+User space: 20%
+Kernel space: 15%
+iowait: 0%
