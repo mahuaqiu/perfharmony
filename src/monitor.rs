@@ -13,6 +13,10 @@ use std::time::{Duration, Instant};
 use chrono::Utc;
 use regex::Regex;
 
+use crate::collector::{
+    collect_gpu, collect_network, collect_power, collect_thermal, optional_command,
+    split_optional_output, OptionalState,
+};
 use crate::data::{
     AggregatedProcessInfo, ProcessFilter, ProcessInfo, Sample, SensorValue, SystemMetrics,
 };
@@ -196,6 +200,7 @@ pub(crate) fn run_monitor<C: ShellClient>(
     let started = Instant::now();
     let interval = Duration::from_secs_f64(config.interval);
     let mut previous_cpu: Option<CpuStatSnapshot> = None;
+    let mut optional_state = OptionalState::default();
     let mut consecutive_empty_p0 = 0u32;
 
     while !inner.is_stopped() {
@@ -207,11 +212,12 @@ pub(crate) fn run_monitor<C: ShellClient>(
         }
 
         let round_started = Instant::now();
-        match collect_sample(
+        match collect_sample_with_optional(
             &config,
             &client,
             &inner,
             &mut previous_cpu,
+            &mut optional_state,
             started.elapsed(),
         ) {
             Ok(Some(sample)) => {
@@ -259,6 +265,25 @@ fn collect_sample<C: ShellClient>(
     client: &C,
     inner: &MonitorInner,
     previous_cpu: &mut Option<CpuStatSnapshot>,
+    elapsed: Duration,
+) -> Result<Option<Sample>, String> {
+    let mut optional_state = OptionalState::default();
+    collect_sample_with_optional(
+        config,
+        client,
+        inner,
+        previous_cpu,
+        &mut optional_state,
+        elapsed,
+    )
+}
+
+fn collect_sample_with_optional<C: ShellClient>(
+    config: &MonitorConfigOwned,
+    client: &C,
+    inner: &MonitorInner,
+    previous_cpu: &mut Option<CpuStatSnapshot>,
+    optional_state: &mut OptionalState,
     elapsed: Duration,
 ) -> Result<Option<Sample>, String> {
     let mut system = SystemMetrics::default();
@@ -461,14 +486,7 @@ fn collect_sample<C: ShellClient>(
         .filter(|_| config.enable_aggregation)
         .map(|values| aggregate_processes(values));
     // Task 0 尚未冻结 PC/Mobile 批量 CPU fixture，TopN 只能预留字段，运行时返回 None。
-    let _ = (
-        &config.top_n_cpu,
-        &config.top_n_gpu,
-        config.enable_gpu,
-        config.enable_network,
-        config.enable_thermal_power,
-    );
-    Ok(Some(Sample {
+    let mut sample = Sample {
         sequence: inner.next_sequence(),
         elapsed_ms: elapsed.as_millis() as u64,
         timestamp: Utc::now(),
@@ -478,7 +496,59 @@ fn collect_sample<C: ShellClient>(
         aggregated,
         top_n_cpu: None,
         top_n_gpu: None,
-    }))
+    };
+
+    // 可选能力共用一次 shell。它们的设备端格式和权限仍需真机冻结，故解析失败只降级
+    // 当前能力，不影响已经完成的 P0 样本。
+    if let Some(command) = optional_command(
+        config.enable_network,
+        config.enable_thermal_power,
+        config.enable_thermal_power,
+        config.enable_gpu,
+    ) {
+        match client.shell_with_cancel(&config.udid, &command, SHELL_TIMEOUT_SECS, &inner.stop) {
+            Ok(text) => {
+                let sections = split_optional_output(&text);
+                if config.enable_network {
+                    if let Some(section) = sections.get("network") {
+                        if let Err(error) = collect_network(
+                            section,
+                            optional_state,
+                            config.interval,
+                            &mut sample.hwinfo_raw,
+                        ) {
+                            log::debug!("网络指标不可用: {error}");
+                        }
+                    }
+                }
+                if config.enable_thermal_power {
+                    if let Some(section) = sections.get("power") {
+                        if let Err(error) = collect_power(section, &mut sample.hwinfo_raw) {
+                            log::debug!("功耗指标不可用: {error}");
+                        }
+                    }
+                    if let Some(section) = sections.get("thermal") {
+                        if let Err(error) = collect_thermal(section, &mut sample.hwinfo_raw) {
+                            log::debug!("温度指标不可用: {error}");
+                        }
+                    }
+                }
+                if config.enable_gpu {
+                    if let Some(section) = sections.get("gpu") {
+                        if let Err(error) = collect_gpu(section, &mut sample) {
+                            log::debug!("GPU 指标不可用: {error}");
+                        }
+                    }
+                }
+            }
+            Err(error) if !matches!(error, crate::error::Error::Cancelled(_)) => {
+                log::debug!("可选指标 shell 不可用: {error}");
+            }
+            Err(_) => return Ok(None),
+        }
+    }
+
+    Ok(Some(sample))
 }
 
 fn update_proc_cpu(

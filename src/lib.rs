@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
 use pyo3::prelude::*;
+use pyo3::types::PyDict;
 use pyo3::PyTypeInfo;
 
+mod collector;
 mod data;
 mod error;
 mod hdc;
@@ -12,6 +14,7 @@ mod ring_buffer;
 
 use hdc::{parse_list_targets, HdcClient};
 use monitor::{MonitorInner, MonitorResultInner};
+use parse::{parse_hidumper_cpuusage, parse_hidumper_mem_system, parse_proc_meminfo, parse_ps_ef};
 
 #[pyclass]
 #[derive(Clone, Debug)]
@@ -348,6 +351,179 @@ fn list_processes(udid: String, hdc_path: Option<String>) -> PyResult<Vec<(u32, 
     Ok(parse::parse_ps_ef(&output))
 }
 
+#[pyfunction]
+#[pyo3(signature = (udid, hdc_path=None))]
+fn probe(udid: String, hdc_path: Option<String>, py: Python<'_>) -> PyResult<Py<PyAny>> {
+    if udid.trim().is_empty() {
+        return Err(pyo3::exceptions::PyValueError::new_err("udid 不能为空"));
+    }
+    let client = HdcClient::from_optional_path(hdc_path).map_err(error::to_py_err)?;
+    let targets = client.list_targets_raw().map_err(error::to_py_err)?;
+    let target = parse_list_targets(&targets)
+        .into_iter()
+        .find(|item| item.udid == udid);
+    let result = pyo3::types::PyDict::new_bound(py);
+    let capabilities = pyo3::types::PyDict::new_bound(py);
+
+    let Some(target) = target else {
+        result.set_item("udid", &udid)?;
+        result.set_item(
+            "target",
+            capability_to_py(py, "unavailable", Some("目标不存在"))?,
+        )?;
+        result.set_item("capabilities", capabilities)?;
+        return Ok(result.into());
+    };
+    if !target.status.eq_ignore_ascii_case("ready") {
+        result.set_item("udid", &udid)?;
+        result.set_item(
+            "target",
+            capability_to_py(
+                py,
+                "unavailable",
+                Some(&format!("目标状态: {}", target.status)),
+            )?,
+        )?;
+        result.set_item("capabilities", capabilities)?;
+        return Ok(result.into());
+    }
+
+    result.set_item("udid", &udid)?;
+    result.set_item(
+        "target",
+        capability_to_py(py, "available", Some("HDC target ready"))?,
+    )?;
+
+    let cpu_output = client.shell(&udid, "hidumper --cpuusage", 15);
+    let cpu_status = match cpu_output {
+        Ok(text) => collector::classify_probe(
+            Ok(text.clone()),
+            parse_hidumper_cpuusage(&text).map(|_| ()),
+            "hidumper --cpuusage",
+        ),
+        Err(error) => match client.shell(&udid, "cat /proc/stat", 15) {
+            Ok(text) => collector::CapabilityStatus {
+                status: "degraded".to_string(),
+                reason: Some(format!(
+                    "hidumper --cpuusage 不可用，/proc/stat 可用: {error}; {}",
+                    text.lines().next().unwrap_or("")
+                )),
+            },
+            Err(fallback_error) => collector::CapabilityStatus {
+                status: "unavailable".to_string(),
+                reason: Some(format!(
+                    "hidumper --cpuusage: {error}; /proc/stat: {fallback_error}"
+                )),
+            },
+        },
+    };
+    set_capability(py, &capabilities, "system_cpu", &cpu_status)?;
+
+    let mem_output = client.shell(&udid, "hidumper --mem", 15);
+    let mem_status = match mem_output {
+        Ok(text) => collector::classify_probe(
+            Ok(text.clone()),
+            parse_hidumper_mem_system(&text).map(|_| ()),
+            "hidumper --mem",
+        ),
+        Err(error) => match client.shell(&udid, "cat /proc/meminfo", 15) {
+            Ok(text) => collector::classify_probe(
+                Ok(text.clone()),
+                parse_proc_meminfo(&text).map(|_| ()),
+                "cat /proc/meminfo",
+            ),
+            Err(fallback_error) => collector::CapabilityStatus {
+                status: "unavailable".to_string(),
+                reason: Some(format!(
+                    "hidumper --mem: {error}; /proc/meminfo: {fallback_error}"
+                )),
+            },
+        },
+    };
+    set_capability(py, &capabilities, "system_memory", &mem_status)?;
+
+    let process_output = client.shell(&udid, "ps -ef", 15);
+    let process_status = match process_output {
+        Ok(text) => collector::classify_probe(
+            Ok(text.clone()),
+            if parse_ps_ef(&text).is_empty() {
+                Err(error::Error::ParseFailed("ps -ef 未解析到进程".to_string()))
+            } else {
+                Ok(())
+            },
+            "ps -ef",
+        ),
+        Err(error) => collector::CapabilityStatus {
+            status: "unavailable".to_string(),
+            reason: Some(error.to_string()),
+        },
+    };
+    set_capability(py, &capabilities, "process", &process_status)?;
+
+    for (name, command, parser) in [
+        ("network", collector::NETWORK_COMMAND, "network"),
+        ("power", collector::POWER_COMMAND, "power"),
+        ("thermal", collector::THERMAL_COMMAND, "thermal"),
+        ("gpu", collector::GPU_COMMAND, "gpu"),
+    ] {
+        let status = match client.shell(&udid, command, 15) {
+            Ok(text) => {
+                let parsed = match parser {
+                    "network" => parse::parse_proc_net_dev(&text).map(|_| ()),
+                    "power" => collector::collect_power(&text, &mut HashMap::new()),
+                    "thermal" => collector::collect_thermal(&text, &mut HashMap::new()),
+                    "gpu" => {
+                        let mut sample = data::Sample {
+                            sequence: 0,
+                            elapsed_ms: 0,
+                            system: Default::default(),
+                            timestamp: chrono::Utc::now(),
+                            hwinfo_raw: HashMap::new(),
+                            processes: None,
+                            aggregated: None,
+                            top_n_cpu: None,
+                            top_n_gpu: None,
+                        };
+                        collector::collect_gpu(&text, &mut sample)
+                    }
+                    _ => unreachable!(),
+                };
+                collector::classify_probe(Ok(text), parsed, command)
+            }
+            Err(error) => collector::CapabilityStatus {
+                status: "unavailable".to_string(),
+                reason: Some(error.to_string()),
+            },
+        };
+        set_capability(py, &capabilities, name, &status)?;
+    }
+    result.set_item("capabilities", capabilities)?;
+    Ok(result.into())
+}
+
+fn capability_to_py(py: Python<'_>, status: &str, reason: Option<&str>) -> PyResult<Py<PyAny>> {
+    let value = pyo3::types::PyDict::new_bound(py);
+    value.set_item("status", status)?;
+    value.set_item("available", status == "available")?;
+    value.set_item("degraded", status == "degraded")?;
+    value.set_item("unavailable", status == "unavailable")?;
+    value.set_item("reason", reason)?;
+    Ok(value.into())
+}
+
+fn set_capability(
+    py: Python<'_>,
+    capabilities: &Bound<'_, PyDict>,
+    name: &str,
+    status: &collector::CapabilityStatus,
+) -> PyResult<()> {
+    capabilities.set_item(
+        name,
+        capability_to_py(py, &status.status, status.reason.as_deref())?,
+    )?;
+    Ok(())
+}
+
 #[pyclass(name = "Monitor")]
 pub struct PyMonitor {
     inner: std::sync::Arc<MonitorInner>,
@@ -501,5 +677,6 @@ fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(list_targets, m)?)?;
     m.add_function(wrap_pyfunction!(parse_targets_for_test, m)?)?;
     m.add_function(wrap_pyfunction!(list_processes, m)?)?;
+    m.add_function(wrap_pyfunction!(probe, m)?)?;
     Ok(())
 }

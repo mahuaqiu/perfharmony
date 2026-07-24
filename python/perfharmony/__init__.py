@@ -12,6 +12,7 @@ from ._native import (
     list_processes,
     list_targets,
     parse_targets_for_test,
+    probe,
 )
 
 __all__ = [
@@ -26,4 +27,5 @@ __all__ = [
     "list_targets",
     "list_processes",
     "parse_targets_for_test",
+    "probe",
 ]
