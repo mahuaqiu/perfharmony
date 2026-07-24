@@ -54,13 +54,6 @@ impl CapabilityStatus {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct ProbeResult {
-    pub udid: String,
-    pub target: CapabilityStatus,
-    pub capabilities: HashMap<String, CapabilityStatus>,
-}
-
 /// Collector 的最小生命周期契约。每个 collector 只负责一个能力，输入文本由 Monitor
 /// 统一通过 HDC 获取，这样可以在不连接真机时注入 fixture 测试。
 pub(crate) trait Collector: Send {
@@ -378,5 +371,22 @@ mod tests {
         assert!(collect_gpu("unknown gpu output", &mut sample).is_err());
         collect_gpu("GPU load: 12.5%\n", &mut sample).unwrap();
         assert_eq!(sample.system.gpu_percent, Some(12.5));
+    }
+
+    #[test]
+    fn split_optional_output_keeps_marker_boundaries() {
+        let output = concat!(
+            "__PERFHARMONY_NETWORK__\r\n",
+            "eth0: 1 2 3 4\r\n",
+            "__PERFHARMONY_POWER__\n",
+            "current_now=120000\n",
+            "__PERFHARMONY_GPU__\n",
+            "GPU load: 12.5%\n",
+        );
+        let sections = split_optional_output(output);
+        assert_eq!(sections["network"], "eth0: 1 2 3 4");
+        assert_eq!(sections["power"], "current_now=120000");
+        assert_eq!(sections["gpu"], "GPU load: 12.5%");
+        assert!(!sections.contains_key("thermal"));
     }
 }

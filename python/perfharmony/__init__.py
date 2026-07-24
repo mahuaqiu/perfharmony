@@ -10,6 +10,7 @@ from ._native import (
     TargetInfo,
     __version__,
     list_processes,
+    list_sensors,
     list_targets,
     parse_targets_for_test,
     probe,
@@ -26,6 +27,7 @@ __all__ = [
     "__version__",
     "list_targets",
     "list_processes",
+    "list_sensors",
     "parse_targets_for_test",
     "probe",
 ]

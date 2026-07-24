@@ -11,6 +11,9 @@
 
 HDC 路径优先级为显式 `hdc_path`、`PERFHARMONY_HDC`、`HDC_PATH`、Worker 注入路径、SDK 环境变量、最后才是 `PATH`。同一 UDID 的命令通过进程内锁串行执行。
 
+调试辅助 `perfharmony.list_sensors(udid)` 会按当前已实现的解析器返回稳定 key 列表；它不
+替代 `probe()`，也不代表字段语义已经通过 PC/Mobile 真机评审。
+
 ## P0 命令
 
 | 指标 | 首选命令 | 回退命令 | 解析器 | 当前状态 |
@@ -34,7 +37,8 @@ P0 失败不写入 0。连续三轮没有任何 P0 指标时 Monitor 停止，�
 
 ## 真机验收清单
 
-PC 和 Mobile 各需归档以下原始输出，并放入 `tests/fixtures/real/<device-kind>/`：
+PC 和 Mobile 各需归档以下原始输出，并放入 `tests/fixtures/real/<device-kind>/`。当前仓库
+已创建 `harmony_pc/` 和 `harmony_mobile/` 目录，但尚未放入真实输出：
 
 ```text
 hdc list targets -v

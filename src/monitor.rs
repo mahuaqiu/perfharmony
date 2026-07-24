@@ -14,8 +14,8 @@ use chrono::Utc;
 use regex::Regex;
 
 use crate::collector::{
-    collect_gpu, collect_network, collect_power, collect_thermal, optional_command,
-    split_optional_output, OptionalState,
+    optional_command, split_optional_output, CollectContext, Collector, GpuCollector,
+    NetworkCollector, OptionalState, PowerCollector, ThermalCollector,
 };
 use crate::data::{
     AggregatedProcessInfo, ProcessFilter, ProcessInfo, Sample, SensorValue, SystemMetrics,
@@ -509,35 +509,30 @@ fn collect_sample_with_optional<C: ShellClient>(
         match client.shell_with_cancel(&config.udid, &command, SHELL_TIMEOUT_SECS, &inner.stop) {
             Ok(text) => {
                 let sections = split_optional_output(&text);
+                let mut collectors: Vec<Box<dyn Collector>> = Vec::new();
                 if config.enable_network {
-                    if let Some(section) = sections.get("network") {
-                        if let Err(error) = collect_network(
-                            section,
-                            optional_state,
-                            config.interval,
-                            &mut sample.hwinfo_raw,
-                        ) {
-                            log::debug!("网络指标不可用: {error}");
-                        }
-                    }
+                    collectors.push(Box::new(NetworkCollector));
                 }
                 if config.enable_thermal_power {
-                    if let Some(section) = sections.get("power") {
-                        if let Err(error) = collect_power(section, &mut sample.hwinfo_raw) {
-                            log::debug!("功耗指标不可用: {error}");
-                        }
-                    }
-                    if let Some(section) = sections.get("thermal") {
-                        if let Err(error) = collect_thermal(section, &mut sample.hwinfo_raw) {
-                            log::debug!("温度指标不可用: {error}");
-                        }
-                    }
+                    collectors.push(Box::new(PowerCollector));
+                    collectors.push(Box::new(ThermalCollector));
                 }
                 if config.enable_gpu {
-                    if let Some(section) = sections.get("gpu") {
-                        if let Err(error) = collect_gpu(section, &mut sample) {
-                            log::debug!("GPU 指标不可用: {error}");
-                        }
+                    collectors.push(Box::new(GpuCollector));
+                }
+
+                let mut context = CollectContext {
+                    sample: &mut sample,
+                    optional_state,
+                    interval_secs: config.interval,
+                    network_text: sections.get("network").map(String::as_str),
+                    power_text: sections.get("power").map(String::as_str),
+                    thermal_text: sections.get("thermal").map(String::as_str),
+                    gpu_text: sections.get("gpu").map(String::as_str),
+                };
+                for collector in &mut collectors {
+                    if let Err(error) = collector.collect(&mut context) {
+                        log::debug!("{} 指标不可用: {error}", collector.name());
                     }
                 }
             }

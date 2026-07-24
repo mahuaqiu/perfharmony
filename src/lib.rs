@@ -351,6 +351,102 @@ fn list_processes(udid: String, hdc_path: Option<String>) -> PyResult<Vec<(u32, 
     Ok(parse::parse_ps_ef(&output))
 }
 
+/// 探测当前设备能够解析出的稳定传感器键。
+///
+/// 这是调试辅助 API，不把任意命令输出直接暴露给调用方；命令或字段不可用时只跳过
+/// 对应能力，HDC 路径解析失败仍返回可识别异常。
+#[pyfunction]
+#[pyo3(signature = (udid, hdc_path=None))]
+fn list_sensors(udid: String, hdc_path: Option<String>) -> PyResult<Vec<String>> {
+    if udid.trim().is_empty() {
+        return Err(pyo3::exceptions::PyValueError::new_err("udid 不能为空"));
+    }
+    let client = HdcClient::from_optional_path(hdc_path).map_err(error::to_py_err)?;
+    let mut raw = HashMap::new();
+    let mut optional_state = collector::OptionalState::default();
+
+    if let Ok(text) = client.shell(&udid, "hidumper --cpuusage", 15) {
+        if let Ok(cpu) = parse_hidumper_cpuusage(&text) {
+            collector::add_sensor(&mut raw, "Harmony CPU Usage", cpu.total_percent, "%");
+            if let Some(value) = cpu.user_percent {
+                collector::add_sensor(&mut raw, "Harmony CPU User", value, "%");
+            }
+            if let Some(value) = cpu.system_percent {
+                collector::add_sensor(&mut raw, "Harmony CPU System", value, "%");
+            }
+            if let Some(value) = cpu.idle_percent {
+                collector::add_sensor(&mut raw, "Harmony CPU Idle", value, "%");
+            }
+        }
+    }
+
+    if let Ok(text) = client.shell(&udid, "hidumper --mem", 15) {
+        if let Ok(mem) = parse_hidumper_mem_system(&text) {
+            collector::add_sensor(
+                &mut raw,
+                "Harmony Mem Total",
+                mem.total_kb as f64 / 1024.0,
+                "MB",
+            );
+            collector::add_sensor(
+                &mut raw,
+                "Harmony Mem Used",
+                mem.used_kb as f64 / 1024.0,
+                "MB",
+            );
+            collector::add_sensor(
+                &mut raw,
+                "Harmony Mem Free",
+                mem.free_kb as f64 / 1024.0,
+                "MB",
+            );
+            if let Some(value) = mem.available_kb {
+                collector::add_sensor(
+                    &mut raw,
+                    "Harmony Mem Available",
+                    value as f64 / 1024.0,
+                    "MB",
+                );
+            }
+        }
+    }
+
+    if let Some(command) = collector::optional_command(true, true, true, true) {
+        if let Ok(text) = client.shell(&udid, &command, 15) {
+            let sections = collector::split_optional_output(&text);
+            if let Some(section) = sections.get("network") {
+                let _ = collector::collect_network(section, &mut optional_state, 1.0, &mut raw);
+            }
+            if let Some(section) = sections.get("power") {
+                let _ = collector::collect_power(section, &mut raw);
+            }
+            if let Some(section) = sections.get("thermal") {
+                let _ = collector::collect_thermal(section, &mut raw);
+            }
+            if let Some(section) = sections.get("gpu") {
+                let mut sample = data::Sample {
+                    sequence: 0,
+                    elapsed_ms: 0,
+                    system: Default::default(),
+                    timestamp: chrono::Utc::now(),
+                    hwinfo_raw: HashMap::new(),
+                    processes: None,
+                    aggregated: None,
+                    top_n_cpu: None,
+                    top_n_gpu: None,
+                };
+                if collector::collect_gpu(section, &mut sample).is_ok() {
+                    raw.extend(sample.hwinfo_raw);
+                }
+            }
+        }
+    }
+
+    let mut keys = raw.into_keys().collect::<Vec<_>>();
+    keys.sort();
+    Ok(keys)
+}
+
 #[pyfunction]
 #[pyo3(signature = (udid, hdc_path=None))]
 fn probe(udid: String, hdc_path: Option<String>, py: Python<'_>) -> PyResult<Py<PyAny>> {
@@ -677,6 +773,7 @@ fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(list_targets, m)?)?;
     m.add_function(wrap_pyfunction!(parse_targets_for_test, m)?)?;
     m.add_function(wrap_pyfunction!(list_processes, m)?)?;
+    m.add_function(wrap_pyfunction!(list_sensors, m)?)?;
     m.add_function(wrap_pyfunction!(probe, m)?)?;
     Ok(())
 }
