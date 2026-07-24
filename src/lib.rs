@@ -7,6 +7,7 @@ mod data;
 mod error;
 mod hdc;
 mod ring_buffer;
+mod parse;
 
 use hdc::{parse_list_targets, HdcClient};
 
