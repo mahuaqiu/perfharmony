@@ -630,7 +630,9 @@ pub struct PyMonitor {
 #[pymethods]
 impl PyMonitor {
     #[new]
-    #[pyo3(signature = (udid, interval=2.0, duration=None, hdc_path=None, process_filter=None, top_n_cpu=10, top_n_gpu=None, enable_aggregation=true, enable_system_cpu=true, enable_system_mem=true, enable_process=true, enable_gpu=true, enable_network=true, enable_thermal_power=true))]
+    // 默认关闭 network/gpu/thermal，避免 P0 路径默认突破 4/6 次 HDC shell 预算。
+    // 调用方可通过参数显式开启 optional collector。
+    #[pyo3(signature = (udid, interval=2.0, duration=None, hdc_path=None, process_filter=None, top_n_cpu=10, top_n_gpu=None, enable_aggregation=true, enable_system_cpu=true, enable_system_mem=true, enable_process=true, enable_gpu=false, enable_network=false, enable_thermal_power=false))]
     fn new(
         udid: String,
         interval: f64,

@@ -437,41 +437,62 @@ fn collect_sample_with_optional<C: ShellClient>(
     let mut processes = None;
     if config.enable_process {
         if let Some(filter) = &config.process_filter {
-            let ps_text = client
-                .shell_with_cancel(&config.udid, "ps -ef", SHELL_TIMEOUT_SECS, &inner.stop)
-                .map_err(|error| error.to_string())?;
-            let candidates = filtered_processes(filter, &parse_ps_ef(&ps_text));
-            if !candidates.is_empty() {
-                // 只调用一次批量 top，避免对全量 PID 逐个发起 HDC 请求。
-                let top_text = client
-                    .shell_with_cancel(&config.udid, "top -n 1 -b", SHELL_TIMEOUT_SECS, &inner.stop)
-                    .map_err(|error| error.to_string())?;
-                let snapshots = parse_top_processes(&top_text);
-                let mut details = Vec::new();
-                for (pid, name) in candidates {
-                    if let Some(snapshot) = snapshots.get(&pid) {
-                        details.push(ProcessInfo {
-                            pid,
-                            name,
-                            cpu_percent: clamp_percent(snapshot.cpu_percent),
-                            working_set_mb: snapshot.memory_mb,
-                            // 鸿蒙一期没有稳定 VSS 协议，先以 RSS/PSS 同构填充，语义在文档中说明。
-                            committed_memory_mb: snapshot.memory_mb,
-                            gpu_percent: 0.0,
-                            gpu_memory_mb: 0.0,
-                            handle_count: 0,
-                        });
+            // 进程 shell 失败只降级进程字段，不能把已经采到的系统 CPU/内存整轮丢掉。
+            match client.shell_with_cancel(
+                &config.udid,
+                "ps -ef",
+                SHELL_TIMEOUT_SECS,
+                &inner.stop,
+            ) {
+                Ok(ps_text) => {
+                    let candidates = filtered_processes(filter, &parse_ps_ef(&ps_text));
+                    if !candidates.is_empty() {
+                        // 只调用一次批量 top，避免对全量 PID 逐个发起 HDC 请求。
+                        match client.shell_with_cancel(
+                            &config.udid,
+                            "top -n 1 -b",
+                            SHELL_TIMEOUT_SECS,
+                            &inner.stop,
+                        ) {
+                            Ok(top_text) => {
+                                let snapshots = parse_top_processes(&top_text);
+                                let mut details = Vec::new();
+                                for (pid, name) in candidates {
+                                    if let Some(snapshot) = snapshots.get(&pid) {
+                                        details.push(ProcessInfo {
+                                            pid,
+                                            name,
+                                            cpu_percent: clamp_percent(snapshot.cpu_percent),
+                                            working_set_mb: snapshot.memory_mb,
+                                            // 鸿蒙一期没有稳定 VSS 协议，先以 RSS/PSS 同构填充。
+                                            committed_memory_mb: snapshot.memory_mb,
+                                            gpu_percent: 0.0,
+                                            gpu_memory_mb: 0.0,
+                                            handle_count: 0,
+                                        });
+                                    }
+                                }
+                                if !details.is_empty() {
+                                    p0_count += 1;
+                                    processes = Some(details);
+                                }
+                            }
+                            Err(error)
+                                if matches!(error, crate::error::Error::Cancelled(_)) =>
+                            {
+                                return Ok(None);
+                            }
+                            Err(error) => {
+                                log::debug!("进程 top 快照不可用，本轮仅保留系统指标: {error}");
+                            }
+                        }
                     }
                 }
-                if !details.is_empty() {
-                    p0_count += 1;
-                    if config.enable_aggregation {
-                        let aggregated = aggregate_processes(&details);
-                        processes = Some(details);
-                        let _ = aggregated;
-                    } else {
-                        processes = Some(details);
-                    }
+                Err(error) if matches!(error, crate::error::Error::Cancelled(_)) => {
+                    return Ok(None);
+                }
+                Err(error) => {
+                    log::debug!("进程列表不可用，本轮仅保留系统指标: {error}");
                 }
             }
         }
@@ -823,6 +844,82 @@ mod tests {
                 "ps -ef",
                 "top -n 1 -b"
             ]
+        );
+    }
+
+    struct FailingProcessHdc {
+        calls: Mutex<Vec<String>>,
+    }
+
+    impl ShellClient for FailingProcessHdc {
+        fn shell_with_cancel(
+            &self,
+            _udid: &str,
+            command: &str,
+            _timeout_secs: u64,
+            cancel: &AtomicBool,
+        ) -> Result<String, Error> {
+            if cancel.load(Ordering::Relaxed) {
+                return Err(Error::Cancelled("fake hdc cancelled".to_string()));
+            }
+            self.calls
+                .lock()
+                .expect("fake HDC calls mutex poisoned")
+                .push(command.to_string());
+            match command {
+                "hidumper --cpuusage" => {
+                    Ok(include_str!("../tests/fixtures/hidumper_cpuusage.txt").to_string())
+                }
+                "hidumper --mem" => {
+                    Ok(include_str!("../tests/fixtures/hidumper_mem.txt").to_string())
+                }
+                "ps -ef" => Err(Error::Timeout("ps timed out".to_string())),
+                "top -n 1 -b" => Err(Error::Timeout("top timed out".to_string())),
+                _ => Err(Error::CommandFailed(format!(
+                    "unexpected fake command: {command}"
+                ))),
+            }
+        }
+    }
+
+    #[test]
+    fn process_shell_failure_keeps_system_sample() {
+        let config = MonitorConfigOwned {
+            udid: "FAKE-UDID".to_string(),
+            hdc_path: None,
+            interval: 1.0,
+            duration: Some(2.0),
+            process_filter: Some(ProcessFilter::Names(vec!["com.example.app".to_string()])),
+            top_n_cpu: None,
+            top_n_gpu: None,
+            enable_aggregation: true,
+            enable_system_cpu: true,
+            enable_system_mem: true,
+            enable_process: true,
+            enable_gpu: false,
+            enable_network: false,
+            enable_thermal_power: false,
+        };
+        let fake = FailingProcessHdc {
+            calls: Mutex::new(Vec::new()),
+        };
+        let inner = std::sync::Arc::new(MonitorInner::new());
+        let mut previous_cpu = None;
+        let sample = collect_sample(
+            &config,
+            &fake,
+            &inner,
+            &mut previous_cpu,
+            std::time::Duration::from_millis(25),
+        )
+        .expect("system P0 should survive process shell failure")
+        .expect("system-only sample should be produced");
+
+        assert_eq!(sample.system.cpu_percent, Some(35.0));
+        assert!(sample.processes.is_none());
+        assert_eq!(
+            fake.calls.lock().unwrap().as_slice(),
+            ["hidumper --cpuusage", "hidumper --mem", "ps -ef"]
         );
     }
 

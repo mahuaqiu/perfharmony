@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use crate::error::Error;
 
-/// 按显式配置、环境变量、SDK 和 PATH 的顺序解析 HDC。
+/// 按显式配置、环境变量、Worker 包内 tools/hdc、SDK 和 PATH 的顺序解析 HDC。
 pub fn resolve_hdc_path(explicit: Option<&str>) -> Result<PathBuf, Error> {
     let explicit_value = explicit.map(str::to_string);
     let perfharmony_value = env::var("PERFHARMONY_HDC").ok();
@@ -21,17 +21,53 @@ pub fn resolve_hdc_path(explicit: Option<&str>) -> Result<PathBuf, Error> {
         }
     }
 
-    for variable in ["HOS_SDK_HOME", "DEVECO_SDK_HOME"] {
+    // Worker 打包目录 / 仓库内置工具：tools/hdc/hdc.exe。
+    for relative in [
+        "tools/hdc/hdc.exe",
+        "tools/hdc/hdc",
+        "tools/hdc",
+        "hdc/hdc.exe",
+        "hdc/hdc",
+    ] {
+        if let Some(path) = find_command(relative) {
+            return Ok(path);
+        }
+        if let Ok(cwd) = env::current_dir() {
+            let candidate = cwd.join(relative);
+            if let Some(path) = find_command(&candidate.to_string_lossy()) {
+                return Ok(path);
+            }
+        }
+        if let Ok(exe) = env::current_exe() {
+            if let Some(dir) = exe.parent() {
+                let candidate = dir.join(relative);
+                if let Some(path) = find_command(&candidate.to_string_lossy()) {
+                    return Ok(path);
+                }
+            }
+        }
+    }
+
+    for variable in [
+        "HOS_SDK_HOME",
+        "DEVECO_SDK_HOME",
+        "OHOS_SDK_HOME",
+        "HARMONY_SDK_HOME",
+    ] {
         if let Ok(root) = env::var(variable) {
             for relative in [
                 "toolchains/hdc",
                 "toolchains/hdc.exe",
                 "sdk/default/openharmony/toolchains/hdc",
+                "sdk/default/openharmony/toolchains/hdc.exe",
             ] {
                 let candidate = Path::new(&root).join(relative);
                 if let Some(path) = find_command(&candidate.to_string_lossy()) {
                     return Ok(path);
                 }
+            }
+            if let Some(path) = find_command(&root) {
+                return Ok(path);
             }
         }
     }
@@ -82,4 +118,33 @@ fn find_command(candidate: &str) -> Option<PathBuf> {
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::find_command;
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn resolves_sdk_root_directory_to_nested_hdc() {
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("perfharmony-hdc-{stamp}"));
+        let nested = root
+            .join("sdk")
+            .join("default")
+            .join("openharmony")
+            .join("toolchains");
+        fs::create_dir_all(&nested).expect("create nested hdc dir");
+        let hdc = nested.join(if cfg!(windows) { "hdc.exe" } else { "hdc" });
+        fs::write(&hdc, b"fake").expect("write fake hdc");
+
+        let resolved = find_command(&root.to_string_lossy()).expect("sdk root should resolve");
+        assert_eq!(resolved, hdc);
+
+        let _ = fs::remove_dir_all(root);
+    }
 }
