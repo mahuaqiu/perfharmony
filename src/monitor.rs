@@ -19,7 +19,7 @@ use crate::parse::sp_daemon::{
 use crate::ring_buffer::RingBuffer;
 
 const SAMPLE_BUFFER_CAPACITY: usize = 1024;
-/// pkill 清理命令的 shell 超时。
+/// 清理命令（SP_daemon -stop）的 shell 超时。
 const CLEANUP_TIMEOUT_SECS: u64 = 10;
 /// 流读取轮询步长；每步醒来检查停止标志。
 const POLL_STEP: Duration = Duration::from_millis(200);
@@ -46,7 +46,7 @@ impl LineStream for ShellStream {
     }
 }
 
-/// Monitor 依赖的设备客户端：短命令 shell（pkill 清理）+ 长跑流。
+/// Monitor 依赖的设备客户端：短命令 shell（残留清理）+ 长跑流。
 pub(crate) trait MonitorClient: Send + Sync {
     type Stream: LineStream;
 
@@ -225,10 +225,11 @@ pub(crate) fn run_monitor<C: MonitorClient>(
     inner.mark_running();
     let started = Instant::now();
 
-    // 启动前 best-effort 清理上次残留的 SP_daemon（非 root shell 可杀同 uid 进程）。
+    // 启动前清理上次残留的 SP_daemon：SP_daemon 单例，残留存活会把新实例 Signal 15 顶掉；
+    // 非 root shell 下 pkill/kill 对它 Permission denied，唯一有效的是官方 -stop（真机实证）。
     let _ = client.shell(
         &config.udid,
-        "pkill SP_daemon",
+        "SP_daemon -stop",
         CLEANUP_TIMEOUT_SECS,
         &inner.stop,
     );
@@ -251,11 +252,12 @@ pub(crate) fn run_monitor<C: MonitorClient>(
         }
     }
 
-    // 结束后清理设备端 SP_daemon；stop() 已置位也要执行，故用独立 cancel。
+    // 结束后用官方 -stop 收掉设备端 SP_daemon（杀本地 hdc 不会带走它）；
+    // stop() 已置位也要执行，故用独立 cancel。
     let cleanup_cancel = AtomicBool::new(false);
     let _ = client.shell(
         &config.udid,
-        "pkill SP_daemon",
+        "SP_daemon -stop",
         CLEANUP_TIMEOUT_SECS,
         &cleanup_cancel,
     );
@@ -549,7 +551,7 @@ mod tests {
     }
 
     #[test]
-    fn issues_pkill_before_and_after_and_builds_full_command() {
+    fn issues_stop_cleanup_before_and_after_and_builds_full_command() {
         struct SharedClient {
             inner: Arc<FakeClient>,
         }
@@ -581,7 +583,7 @@ mod tests {
 
         assert_eq!(
             fake.shell_calls.lock().unwrap().as_slice(),
-            ["pkill SP_daemon", "pkill SP_daemon"]
+            ["SP_daemon -stop", "SP_daemon -stop"]
         );
         assert_eq!(
             fake.stream_commands.lock().unwrap().as_slice(),
@@ -663,11 +665,11 @@ mod tests {
             inner.clone(),
         );
 
-        // stop 已置位：不开流；启动前 pkill 被取消，结束后 pkill 用独立 cancel 仍执行。
+        // stop 已置位：不开流；启动前清理被取消，结束后清理用独立 cancel 仍执行。
         assert!(fake.stream_commands.lock().unwrap().is_empty());
         assert_eq!(
             fake.shell_calls.lock().unwrap().as_slice(),
-            ["pkill SP_daemon"]
+            ["SP_daemon -stop"]
         );
         assert!(inner.drain().samples.is_empty());
     }

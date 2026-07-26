@@ -283,7 +283,7 @@ impl ShellStream {
         }
     }
 
-    /// 终止本地 hdc 子进程（设备端 SP_daemon 由调用方 pkill 清理）。
+    /// 终止本地 hdc 子进程（设备端 SP_daemon 由调用方下发 `SP_daemon -stop` 清理）。
     pub fn stop(&mut self) {
         terminate_child(&mut self.child);
         if let Some(handle) = self.stderr_reader.take() {
