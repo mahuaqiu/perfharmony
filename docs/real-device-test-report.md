@@ -156,3 +156,35 @@ Windows 覆盖安装前必须先停止 Worker，并终止**可执行文件路径
 
 perfharmony Rust 侧无此问题（`client.rs` 直接 `["-t", udid, "shell", command]`
 传参，无手工包裹）。
+
+### 按进程名采集改为按应用汇总（0.1.3）
+
+现场反馈：按进程名采集的结果和按 PID 采集一样，没有像鸿蒙任务管理器那样
+按应用汇总。真机 ps -ef 实证：一个应用是多进程，子进程以 `包名:子进程名`
+命名（appspawn 约定），如 `com.huawei.his.xgate` + `:gpu` + `:render`×2、
+`com.hisec.endpoint` + `:EDRMaster0/:EDRManager1/:EDRScanner2`。
+
+旧行为的两个缺陷：
+
+- `ProcessFilter::Name/Names` 全名精确匹配 → 只命中主进程，子进程全漏，
+  “按名”退化成“按单 PID”；
+- `aggregate_processes` 按完整进程名归组 → `:render` 和主进程永远分在
+  不同组，不会合成一行。
+
+开源依据：SP_daemon（developtools smartperf_device）按包名解析出主进程 +
+全部子进程 pid 一起采集（CPU.cpp `GetSysProcessCpuLoad` 的 ChildProc 系列、
+ RAM.cpp 的 childPss 系列），任务管理器同样按应用汇总。
+
+修复（monitor.rs）：
+
+- `name_matches()`：按名过滤同时命中 `包名` 和 `包名:子进程`，不误伤
+  同前缀包（xgate 不会命中 xgate.esm）；
+- `bundle_base_name()`：汇总归组键取冒号前包名（需含 `.` 且不含 `/`，
+  内核线程 kworker/0:1H 不归组），aggregated/top_n_cpu 一行代表一个应用；
+- 平台后端 `convert_aggregated_to_target_processes` 改用 `pids` 关联实例
+  （子进程名≠汇总行名，按名关联会丢实例），实例携带自身进程名供前端
+  展示子进程明细。
+
+回归测试 `name_filter_matches_bundle_child_processes`、
+`aggregation_groups_children_under_bundle_name`、`bundle_base_name_keeps_non_bundle_names`，
+cargo test 46 项全部通过。版本 0.1.2 → 0.1.3。**需重新打包部署 Worker 生效。**

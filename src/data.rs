@@ -95,4 +95,6 @@ pub struct MonitorConfig {
     pub enable_gpu: bool,
     pub enable_network: bool,
     pub enable_thermal_power: bool,
+    pub enable_cpu_freq: bool,
+    pub enable_disk_io: bool,
 }

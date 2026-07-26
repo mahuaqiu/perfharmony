@@ -411,7 +411,7 @@ fn list_sensors(udid: String, hdc_path: Option<String>) -> PyResult<Vec<String>>
         }
     }
 
-    if let Some(command) = collector::optional_command(true, true, true, true) {
+    if let Some(command) = collector::optional_command(true, true, true, true, true) {
         if let Ok(text) = client.shell(&udid, &command, 15) {
             let sections = collector::split_optional_output(&text);
             if let Some(section) = sections.get("network") {
@@ -438,6 +438,9 @@ fn list_sensors(udid: String, hdc_path: Option<String>) -> PyResult<Vec<String>>
                 if collector::collect_gpu(section, &mut sample).is_ok() {
                     raw.extend(sample.hwinfo_raw);
                 }
+            }
+            if let Some(section) = sections.get("cpufreq") {
+                let _ = collector::collect_cpufreq(section, &mut raw);
             }
         }
     }
@@ -561,6 +564,7 @@ fn probe(udid: String, hdc_path: Option<String>, py: Python<'_>) -> PyResult<Py<
         ("power", collector::POWER_COMMAND, "power"),
         ("thermal", collector::THERMAL_COMMAND, "thermal"),
         ("gpu", collector::GPU_COMMAND, "gpu"),
+        ("cpu_freq", collector::CPUFREQ_COMMAND, "cpufreq"),
     ] {
         let status = match client.shell(&udid, command, 15) {
             Ok(text) => {
@@ -568,6 +572,7 @@ fn probe(udid: String, hdc_path: Option<String>, py: Python<'_>) -> PyResult<Py<
                     "network" => parse::parse_proc_net_dev(&text).map(|_| ()),
                     "power" => collector::collect_power(&text, &mut HashMap::new()),
                     "thermal" => collector::collect_thermal(&text, &mut HashMap::new()),
+                    "cpufreq" => collector::collect_cpufreq(&text, &mut HashMap::new()),
                     "gpu" => {
                         let mut sample = data::Sample {
                             sequence: 0,
@@ -632,7 +637,7 @@ impl PyMonitor {
     #[new]
     // 默认关闭 network/gpu/thermal，避免 P0 路径默认突破 4/6 次 HDC shell 预算。
     // 调用方可通过参数显式开启 optional collector。
-    #[pyo3(signature = (udid, interval=2.0, duration=None, hdc_path=None, process_filter=None, top_n_cpu=10, top_n_gpu=None, enable_aggregation=true, enable_system_cpu=true, enable_system_mem=true, enable_process=true, enable_gpu=false, enable_network=false, enable_thermal_power=false))]
+    #[pyo3(signature = (udid, interval=2.0, duration=None, hdc_path=None, process_filter=None, top_n_cpu=10, top_n_gpu=None, enable_aggregation=true, enable_system_cpu=true, enable_system_mem=true, enable_process=true, enable_gpu=false, enable_network=false, enable_thermal_power=false, enable_cpu_freq=false, enable_disk_io=false))]
     fn new(
         udid: String,
         interval: f64,
@@ -648,6 +653,8 @@ impl PyMonitor {
         enable_gpu: bool,
         enable_network: bool,
         enable_thermal_power: bool,
+        enable_cpu_freq: bool,
+        enable_disk_io: bool,
     ) -> PyResult<Self> {
         if udid.trim().is_empty() {
             return Err(pyo3::exceptions::PyValueError::new_err("udid 不能为空"));
@@ -689,6 +696,8 @@ impl PyMonitor {
                 enable_gpu,
                 enable_network,
                 enable_thermal_power,
+                enable_cpu_freq,
+                enable_disk_io,
             }),
             handle: std::sync::Mutex::new(None),
         })
@@ -766,7 +775,7 @@ impl PyMonitor {
 
 #[pymodule]
 fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add("__version__", "0.1.1")?;
+    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add("HdcError", error::HdcError::type_object_bound(m.py()))?;
     m.add_class::<PyHdcErrorKind>()?;
     m.add_class::<PyProcessFilter>()?;

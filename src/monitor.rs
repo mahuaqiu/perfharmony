@@ -13,8 +13,9 @@ use chrono::Utc;
 use regex::Regex;
 
 use crate::collector::{
-    optional_command, split_optional_output, CollectContext, Collector, GpuCollector,
-    NetworkCollector, OptionalState, PowerCollector, ThermalCollector,
+    optional_command, split_optional_output, CollectContext, Collector, CpuFreqCollector,
+    DiskIoCounters, GpuCollector, NetworkCollector, OptionalState, PowerCollector,
+    ThermalCollector,
 };
 use crate::data::{
     AggregatedProcessInfo, ProcessFilter, ProcessInfo, Sample, SensorValue, SystemMetrics,
@@ -68,6 +69,8 @@ pub(crate) struct MonitorConfigOwned {
     pub enable_gpu: bool,
     pub enable_network: bool,
     pub enable_thermal_power: bool,
+    pub enable_cpu_freq: bool,
+    pub enable_disk_io: bool,
 }
 
 #[derive(Debug)]
@@ -201,6 +204,7 @@ pub(crate) fn run_monitor<C: ShellClient>(
     let interval = Duration::from_secs_f64(config.interval);
     let mut previous_cpu: Option<CpuStatSnapshot> = None;
     let mut optional_state = OptionalState::default();
+    let mut previous_disk: HashMap<u32, DiskIoCounters> = HashMap::new();
     let mut consecutive_empty_p0 = 0u32;
 
     while !inner.is_stopped() {
@@ -218,6 +222,7 @@ pub(crate) fn run_monitor<C: ShellClient>(
             &inner,
             &mut previous_cpu,
             &mut optional_state,
+            &mut previous_disk,
             started.elapsed(),
         ) {
             Ok(Some(sample)) => {
@@ -268,12 +273,14 @@ fn collect_sample<C: ShellClient>(
     elapsed: Duration,
 ) -> Result<Option<Sample>, String> {
     let mut optional_state = OptionalState::default();
+    let mut previous_disk = HashMap::new();
     collect_sample_with_optional(
         config,
         client,
         inner,
         previous_cpu,
         &mut optional_state,
+        &mut previous_disk,
         elapsed,
     )
 }
@@ -284,6 +291,7 @@ fn collect_sample_with_optional<C: ShellClient>(
     inner: &MonitorInner,
     previous_cpu: &mut Option<CpuStatSnapshot>,
     optional_state: &mut OptionalState,
+    previous_disk: &mut HashMap<u32, DiskIoCounters>,
     elapsed: Duration,
 ) -> Result<Option<Sample>, String> {
     let mut system = SystemMetrics::default();
@@ -535,6 +543,7 @@ fn collect_sample_with_optional<C: ShellClient>(
         config.enable_thermal_power,
         config.enable_thermal_power,
         config.enable_gpu,
+        config.enable_cpu_freq,
     ) {
         match client.shell_with_cancel(&config.udid, &command, SHELL_TIMEOUT_SECS, &inner.stop) {
             Ok(text) => {
@@ -550,6 +559,9 @@ fn collect_sample_with_optional<C: ShellClient>(
                 if config.enable_gpu {
                     collectors.push(Box::new(GpuCollector));
                 }
+                if config.enable_cpu_freq {
+                    collectors.push(Box::new(CpuFreqCollector));
+                }
 
                 let mut context = CollectContext {
                     sample: &mut sample,
@@ -559,6 +571,7 @@ fn collect_sample_with_optional<C: ShellClient>(
                     power_text: sections.get("power").map(String::as_str),
                     thermal_text: sections.get("thermal").map(String::as_str),
                     gpu_text: sections.get("gpu").map(String::as_str),
+                    cpufreq_text: sections.get("cpufreq").map(String::as_str),
                 };
                 for collector in &mut collectors {
                     if let Err(error) = collector.collect(&mut context) {
@@ -570,6 +583,36 @@ fn collect_sample_with_optional<C: ShellClient>(
                 log::debug!("可选指标 shell 不可用: {error}");
             }
             Err(_) => return Ok(None),
+        }
+    }
+
+    // 磁盘 IO 只能逐 pid 经 hidumper --storage 代读，与其它可选指标无法共享一条
+    // 静态命令，单独一次 shell；仅对目标进程采集，失败只降级磁盘指标。
+    if config.enable_disk_io {
+        let pids: Vec<u32> = sample
+            .processes
+            .as_ref()
+            .map(|values| values.iter().map(|process| process.pid).collect())
+            .unwrap_or_default();
+        if !pids.is_empty() {
+            let command = crate::collector::disk_io_command(&pids);
+            match client.shell_with_cancel(&config.udid, &command, SHELL_TIMEOUT_SECS, &inner.stop)
+            {
+                Ok(text) => {
+                    if let Err(error) = crate::collector::collect_disk_io(
+                        &text,
+                        previous_disk,
+                        config.interval,
+                        &mut sample.hwinfo_raw,
+                    ) {
+                        log::debug!("磁盘 IO 指标不可用: {error}");
+                    }
+                }
+                Err(error) if !matches!(error, crate::error::Error::Cancelled(_)) => {
+                    log::debug!("磁盘 IO shell 不可用: {error}");
+                }
+                Err(_) => return Ok(None),
+            }
         }
     }
 
@@ -682,8 +725,10 @@ fn filtered_processes(filter: &ProcessFilter, values: &[(u32, String)]) -> Vec<(
     for (pid, name) in values {
         let matched = match filter {
             ProcessFilter::Pids(pids) => pids.contains(pid),
-            ProcessFilter::Name(expected) => name == expected,
-            ProcessFilter::Names(names) => names.iter().any(|expected| expected == name),
+            ProcessFilter::Name(expected) => name_matches(expected, name),
+            ProcessFilter::Names(names) => {
+                names.iter().any(|expected| name_matches(expected, name))
+            }
             ProcessFilter::NameRegex(pattern) => {
                 Regex::new(pattern).is_ok_and(|regex| regex.is_match(name))
             }
@@ -695,11 +740,30 @@ fn filtered_processes(filter: &ProcessFilter, values: &[(u32, String)]) -> Vec<(
     result
 }
 
+/// 按名匹配需覆盖鸿蒙应用子进程：appspawn 以 `包名:子进程名` 命名子进程
+/// （真机实证 com.huawei.his.xgate:gpu/:render），SP_daemon 同样把包名
+/// 解析出的主进程 + 子进程 pid 一起采集。精确匹配会漏掉全部子进程。
+fn name_matches(expected: &str, name: &str) -> bool {
+    name == expected
+        || (name.len() > expected.len()
+            && name.starts_with(expected)
+            && name.as_bytes()[expected.len()] == b':')
+}
+
+/// 汇总归组键：`包名:子进程名` 取冒号前的包名，与任务管理器按应用汇总一致；
+/// 非包名形态（如内核线程 kworker/0:1H）不含 `.`，保持原名不归组。
+fn bundle_base_name(name: &str) -> &str {
+    match name.split_once(':') {
+        Some((base, _)) if base.contains('.') && !base.contains('/') => base,
+        _ => name,
+    }
+}
+
 fn aggregate_processes(processes: &[ProcessInfo]) -> Vec<AggregatedProcessInfo> {
     let mut groups: HashMap<String, Vec<&ProcessInfo>> = HashMap::new();
     for process in processes {
         groups
-            .entry(process.name.clone())
+            .entry(bundle_base_name(&process.name).to_string())
             .or_default()
             .push(process);
     }
@@ -745,8 +809,8 @@ fn clamp_non_negative(value: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::{
-        aggregate_processes, collect_sample, memory_to_mb, parse_top_processes, process_details,
-        MonitorConfigOwned, MonitorInner, ShellClient,
+        aggregate_processes, bundle_base_name, collect_sample, filtered_processes, memory_to_mb,
+        parse_top_processes, process_details, MonitorConfigOwned, MonitorInner, ShellClient,
     };
     use crate::data::{ProcessFilter, ProcessInfo};
     use crate::error::Error;
@@ -835,6 +899,60 @@ mod tests {
     }
 
     #[test]
+    fn name_filter_matches_bundle_child_processes() {
+        // 真机形态：主进程 + `包名:子进程`（xgate 有 :gpu 和两个 :render）。
+        let values = vec![
+            (100, "com.huawei.his.xgate".to_string()),
+            (101, "com.huawei.his.xgate:gpu".to_string()),
+            (102, "com.huawei.his.xgate:render".to_string()),
+            (103, "com.huawei.his.xgate.esm".to_string()),
+            (104, "com.other.app".to_string()),
+        ];
+        let filter = ProcessFilter::Names(vec!["com.huawei.his.xgate".to_string()]);
+        let matched: Vec<u32> = filtered_processes(&filter, &values)
+            .into_iter()
+            .map(|(pid, _)| pid)
+            .collect();
+        // 命中主进程与冒号子进程，但不能误伤同前缀的另一个包 xgate.esm。
+        assert_eq!(matched, vec![100, 101, 102]);
+    }
+
+    #[test]
+    fn aggregation_groups_children_under_bundle_name() {
+        let make = |pid: u32, name: &str, cpu: f64, mem: f64| ProcessInfo {
+            pid,
+            name: name.to_string(),
+            cpu_percent: cpu,
+            working_set_mb: mem,
+            committed_memory_mb: mem * 2.0,
+            gpu_percent: 0.0,
+            gpu_memory_mb: 0.0,
+            handle_count: 0,
+        };
+        let values = aggregate_processes(&[
+            make(100, "com.huawei.his.xgate", 10.0, 100.0),
+            make(101, "com.huawei.his.xgate:gpu", 5.0, 50.0),
+            make(102, "com.huawei.his.xgate:render", 3.0, 30.0),
+        ]);
+        // 任务管理器语义：一行应用，三个 pid 求和。
+        assert_eq!(values.len(), 1);
+        assert_eq!(values[0].name, "com.huawei.his.xgate");
+        assert_eq!(values[0].pids, vec![100, 101, 102]);
+        assert_eq!(values[0].process_count, 3);
+        assert_eq!(values[0].cpu_percent_total, 18.0);
+        assert_eq!(values[0].working_set_mb_total, 180.0);
+    }
+
+    #[test]
+    fn bundle_base_name_keeps_non_bundle_names() {
+        assert_eq!(bundle_base_name("com.app:render"), "com.app");
+        assert_eq!(bundle_base_name("com.app"), "com.app");
+        // 内核线程等非包名形态不归组。
+        assert_eq!(bundle_base_name("kworker/0:1H"), "kworker/0:1H");
+        assert_eq!(bundle_base_name("0:1H"), "0:1H");
+    }
+
+    #[test]
     fn parses_memory_units() {
         assert_eq!(memory_to_mb("1g").unwrap(), 1024.0);
         assert_eq!(memory_to_mb("1024k").unwrap(), 1.0);
@@ -903,6 +1021,8 @@ mod tests {
             enable_gpu: false,
             enable_network: false,
             enable_thermal_power: false,
+            enable_cpu_freq: false,
+            enable_disk_io: false,
         };
         let fake = FakeHdc::new();
         let inner = std::sync::Arc::new(MonitorInner::new());
@@ -955,6 +1075,8 @@ mod tests {
             enable_gpu: false,
             enable_network: false,
             enable_thermal_power: false,
+            enable_cpu_freq: false,
+            enable_disk_io: false,
         };
         let fake = FakeHdc::new();
         let inner = std::sync::Arc::new(MonitorInner::new());
@@ -1037,6 +1159,8 @@ mod tests {
             enable_gpu: false,
             enable_network: false,
             enable_thermal_power: false,
+            enable_cpu_freq: false,
+            enable_disk_io: false,
         };
         let fake = FailingProcessHdc {
             calls: Mutex::new(Vec::new()),
@@ -1078,6 +1202,8 @@ mod tests {
             enable_gpu: false,
             enable_network: false,
             enable_thermal_power: false,
+            enable_cpu_freq: false,
+            enable_disk_io: false,
         };
         let fake = FakeHdc::new();
         let inner = MonitorInner::new();
