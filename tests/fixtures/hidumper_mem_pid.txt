@@ -1,7 +1,0 @@
-                     Pss(kB)
-GL                    12345
-Graph                  5678
-ArkTS Heap            23456
-native heap           11111
-stack                  1024
-Total            Pss   53614    SharedClean      0 SharedDirty      0 PrivateClean   0 PrivateDirty 53614

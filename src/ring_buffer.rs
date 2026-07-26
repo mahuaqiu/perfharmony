@@ -30,6 +30,7 @@ impl<T> RingBuffer<T> {
         self.values.len()
     }
 
+    #[cfg(test)]
     pub fn dropped(&self) -> u64 {
         self.dropped
     }

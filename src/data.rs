@@ -70,31 +70,3 @@ pub struct Sample {
     pub top_n_cpu: Option<Vec<AggregatedProcessInfo>>,
     pub top_n_gpu: Option<Vec<AggregatedProcessInfo>>,
 }
-
-#[derive(Debug, Clone)]
-pub enum ProcessFilter {
-    Pids(Vec<u32>),
-    Name(String),
-    Names(Vec<String>),
-    NameRegex(String),
-}
-
-#[derive(Debug, Clone)]
-pub struct MonitorConfig {
-    pub udid: String,
-    pub hdc_path: Option<String>,
-    pub interval: f64,
-    pub duration: Option<f64>,
-    pub process_filter: Option<ProcessFilter>,
-    pub top_n_cpu: Option<usize>,
-    pub top_n_gpu: Option<usize>,
-    pub enable_aggregation: bool,
-    pub enable_system_cpu: bool,
-    pub enable_system_mem: bool,
-    pub enable_process: bool,
-    pub enable_gpu: bool,
-    pub enable_network: bool,
-    pub enable_thermal_power: bool,
-    pub enable_cpu_freq: bool,
-    pub enable_disk_io: bool,
-}

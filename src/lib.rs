@@ -1,10 +1,8 @@
 use std::collections::HashMap;
 
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
 use pyo3::PyTypeInfo;
 
-mod collector;
 mod data;
 mod error;
 mod hdc;
@@ -14,7 +12,7 @@ mod ring_buffer;
 
 use hdc::{parse_list_targets, HdcClient};
 use monitor::{MonitorInner, MonitorResultInner};
-use parse::{parse_hidumper_cpuusage, parse_hidumper_mem_system, parse_proc_meminfo, parse_ps_ef};
+use parse::{build_system_sensors, parse_blocks, parse_ps_ef, sp_daemon_command};
 
 #[pyclass]
 #[derive(Clone, Debug)]
@@ -50,64 +48,6 @@ impl PyHdcErrorKind {
     const TIMEOUT: &'static str = "timeout";
     #[classattr]
     const COMMAND_FAILED: &'static str = "command_failed";
-    #[classattr]
-    const PARSE_FAILED: &'static str = "parse_failed";
-}
-
-#[pyclass(name = "ProcessFilter")]
-#[derive(Clone, Debug)]
-pub struct PyProcessFilter {
-    pub(crate) filter: data::ProcessFilter,
-}
-
-#[pymethods]
-impl PyProcessFilter {
-    #[new]
-    #[pyo3(signature = (pids=None, name=None, names=None, name_regex=None))]
-    fn new(
-        pids: Option<Vec<u32>>,
-        name: Option<String>,
-        names: Option<Vec<String>>,
-        name_regex: Option<String>,
-    ) -> PyResult<Self> {
-        let supplied = [
-            pids.is_some(),
-            name.is_some(),
-            names.is_some(),
-            name_regex.is_some(),
-        ]
-        .into_iter()
-        .filter(|value| *value)
-        .count();
-        if supplied != 1 {
-            return Err(pyo3::exceptions::PyValueError::new_err(
-                "ProcessFilter 必须且只能指定 pids、name、names 或 name_regex 之一",
-            ));
-        }
-        let filter = if let Some(values) = pids {
-            if values.is_empty() {
-                return Err(pyo3::exceptions::PyValueError::new_err("pids 不能为空"));
-            }
-            data::ProcessFilter::Pids(values)
-        } else if let Some(value) = name {
-            if value.trim().is_empty() {
-                return Err(pyo3::exceptions::PyValueError::new_err("name 不能为空"));
-            }
-            data::ProcessFilter::Name(value)
-        } else if let Some(values) = names {
-            if values.is_empty() {
-                return Err(pyo3::exceptions::PyValueError::new_err("names 不能为空"));
-            }
-            data::ProcessFilter::Names(values)
-        } else {
-            let value = name_regex.expect("已校验 name_regex 存在");
-            regex::Regex::new(&value).map_err(|error| {
-                pyo3::exceptions::PyValueError::new_err(format!("name_regex 无效: {error}"))
-            })?;
-            data::ProcessFilter::NameRegex(value)
-        };
-        Ok(Self { filter })
-    }
 }
 
 #[pyclass(name = "MonitorResult")]
@@ -353,8 +293,7 @@ fn list_processes(udid: String, hdc_path: Option<String>) -> PyResult<Vec<(u32, 
 
 /// 探测当前设备能够解析出的稳定传感器键。
 ///
-/// 这是调试辅助 API，不把任意命令输出直接暴露给调用方；命令或字段不可用时只跳过
-/// 对应能力，HDC 路径解析失败仍返回可识别异常。
+/// 0.2.0 起基于 SP_daemon：跑 2 拍（首拍是差分基线），取末拍白名单传感器键。
 #[pyfunction]
 #[pyo3(signature = (udid, hdc_path=None))]
 fn list_sensors(udid: String, hdc_path: Option<String>) -> PyResult<Vec<String>> {
@@ -362,90 +301,15 @@ fn list_sensors(udid: String, hdc_path: Option<String>) -> PyResult<Vec<String>>
         return Err(pyo3::exceptions::PyValueError::new_err("udid 不能为空"));
     }
     let client = HdcClient::from_optional_path(hdc_path).map_err(error::to_py_err)?;
-    let mut raw = HashMap::new();
-    let mut optional_state = collector::OptionalState::default();
-
-    if let Ok(text) = client.shell(&udid, "hidumper --cpuusage", 15) {
-        if let Ok(cpu) = parse_hidumper_cpuusage(&text) {
-            collector::add_sensor(&mut raw, "Harmony CPU Usage", cpu.total_percent, "%");
-            if let Some(value) = cpu.user_percent {
-                collector::add_sensor(&mut raw, "Harmony CPU User", value, "%");
-            }
-            if let Some(value) = cpu.system_percent {
-                collector::add_sensor(&mut raw, "Harmony CPU System", value, "%");
-            }
-            if let Some(value) = cpu.idle_percent {
-                collector::add_sensor(&mut raw, "Harmony CPU Idle", value, "%");
-            }
-        }
-    }
-
-    if let Ok(text) = client.shell(&udid, "hidumper --mem", 15) {
-        if let Ok(mem) = parse_hidumper_mem_system(&text) {
-            collector::add_sensor(
-                &mut raw,
-                "Harmony Mem Total",
-                mem.total_kb as f64 / 1024.0,
-                "MB",
-            );
-            collector::add_sensor(
-                &mut raw,
-                "Harmony Mem Used",
-                mem.used_kb as f64 / 1024.0,
-                "MB",
-            );
-            collector::add_sensor(
-                &mut raw,
-                "Harmony Mem Free",
-                mem.free_kb as f64 / 1024.0,
-                "MB",
-            );
-            if let Some(value) = mem.available_kb {
-                collector::add_sensor(
-                    &mut raw,
-                    "Harmony Mem Available",
-                    value as f64 / 1024.0,
-                    "MB",
-                );
-            }
-        }
-    }
-
-    if let Some(command) = collector::optional_command(true, true, true, true, true) {
-        if let Ok(text) = client.shell(&udid, &command, 15) {
-            let sections = collector::split_optional_output(&text);
-            if let Some(section) = sections.get("network") {
-                let _ = collector::collect_network(section, &mut optional_state, 1.0, &mut raw);
-            }
-            if let Some(section) = sections.get("power") {
-                let _ = collector::collect_power(section, &mut raw);
-            }
-            if let Some(section) = sections.get("thermal") {
-                let _ = collector::collect_thermal(section, &mut raw);
-            }
-            if let Some(section) = sections.get("gpu") {
-                let mut sample = data::Sample {
-                    sequence: 0,
-                    elapsed_ms: 0,
-                    system: Default::default(),
-                    timestamp: chrono::Utc::now(),
-                    hwinfo_raw: HashMap::new(),
-                    processes: None,
-                    aggregated: None,
-                    top_n_cpu: None,
-                    top_n_gpu: None,
-                };
-                if collector::collect_gpu(section, &mut sample).is_ok() {
-                    raw.extend(sample.hwinfo_raw);
-                }
-            }
-            if let Some(section) = sections.get("cpufreq") {
-                let _ = collector::collect_cpufreq(section, &mut raw);
-            }
-        }
-    }
-
-    let mut keys = raw.into_keys().collect::<Vec<_>>();
+    let command = sp_daemon_command(2, None);
+    let text = client.shell(&udid, &command, 30).map_err(error::to_py_err)?;
+    let blocks = parse_blocks(&text);
+    let Some(block) = blocks.last() else {
+        return Ok(Vec::new());
+    };
+    let mut keys = build_system_sensors(block)
+        .into_keys()
+        .collect::<Vec<_>>();
     keys.sort();
     Ok(keys)
 }
@@ -493,111 +357,51 @@ fn probe(udid: String, hdc_path: Option<String>, py: Python<'_>) -> PyResult<Py<
         capability_to_py(py, "available", Some("HDC target ready"))?,
     )?;
 
-    let cpu_output = client.shell(&udid, "hidumper --cpuusage", 15);
-    let cpu_status = match cpu_output {
-        Ok(text) => collector::classify_probe(
-            Ok(text.clone()),
-            parse_hidumper_cpuusage(&text).map(|_| ()),
-            "hidumper --cpuusage",
-        ),
-        Err(error) => match client.shell(&udid, "cat /proc/stat", 15) {
-            Ok(text) => collector::CapabilityStatus {
-                status: "degraded".to_string(),
-                reason: Some(format!(
-                    "hidumper --cpuusage 不可用，/proc/stat 可用: {error}; {}",
-                    text.lines().next().unwrap_or("")
-                )),
-            },
-            Err(fallback_error) => collector::CapabilityStatus {
-                status: "unavailable".to_string(),
-                reason: Some(format!(
-                    "hidumper --cpuusage: {error}; /proc/stat: {fallback_error}"
-                )),
-            },
-        },
-    };
-    set_capability(py, &capabilities, "system_cpu", &cpu_status)?;
-
-    let mem_output = client.shell(&udid, "hidumper --mem", 15);
-    let mem_status = match mem_output {
-        Ok(text) => collector::classify_probe(
-            Ok(text.clone()),
-            parse_hidumper_mem_system(&text).map(|_| ()),
-            "hidumper --mem",
-        ),
-        Err(error) => match client.shell(&udid, "cat /proc/meminfo", 15) {
-            Ok(text) => collector::classify_probe(
-                Ok(text.clone()),
-                parse_proc_meminfo(&text).map(|_| ()),
-                "cat /proc/meminfo",
-            ),
-            Err(fallback_error) => collector::CapabilityStatus {
-                status: "unavailable".to_string(),
-                reason: Some(format!(
-                    "hidumper --mem: {error}; /proc/meminfo: {fallback_error}"
-                )),
-            },
-        },
-    };
-    set_capability(py, &capabilities, "system_memory", &mem_status)?;
-
-    let process_output = client.shell(&udid, "ps -ef", 15);
-    let process_status = match process_output {
-        Ok(text) => collector::classify_probe(
-            Ok(text.clone()),
-            if parse_ps_ef(&text).is_empty() {
-                Err(error::Error::ParseFailed("ps -ef 未解析到进程".to_string()))
-            } else {
-                Ok(())
-            },
-            "ps -ef",
-        ),
-        Err(error) => collector::CapabilityStatus {
-            status: "unavailable".to_string(),
-            reason: Some(error.to_string()),
-        },
-    };
-    set_capability(py, &capabilities, "process", &process_status)?;
-
-    for (name, command, parser) in [
-        ("network", collector::NETWORK_COMMAND, "network"),
-        ("power", collector::POWER_COMMAND, "power"),
-        ("thermal", collector::THERMAL_COMMAND, "thermal"),
-        ("gpu", collector::GPU_COMMAND, "gpu"),
-        ("cpu_freq", collector::CPUFREQ_COMMAND, "cpufreq"),
-    ] {
-        let status = match client.shell(&udid, command, 15) {
-            Ok(text) => {
-                let parsed = match parser {
-                    "network" => parse::parse_proc_net_dev(&text).map(|_| ()),
-                    "power" => collector::collect_power(&text, &mut HashMap::new()),
-                    "thermal" => collector::collect_thermal(&text, &mut HashMap::new()),
-                    "cpufreq" => collector::collect_cpufreq(&text, &mut HashMap::new()),
-                    "gpu" => {
-                        let mut sample = data::Sample {
-                            sequence: 0,
-                            elapsed_ms: 0,
-                            system: Default::default(),
-                            timestamp: chrono::Utc::now(),
-                            hwinfo_raw: HashMap::new(),
-                            processes: None,
-                            aggregated: None,
-                            top_n_cpu: None,
-                            top_n_gpu: None,
-                        };
-                        collector::collect_gpu(&text, &mut sample)
-                    }
-                    _ => unreachable!(),
-                };
-                collector::classify_probe(Ok(text), parsed, command)
+    // SP_daemon 探测：能解析出块且末拍有白名单传感器即可用。
+    // 注意设备端命令绝不能接管道（SP_daemon 检测到非终端会静默不输出）。
+    let sp_status = match client.shell(&udid, &sp_daemon_command(2, None), 30) {
+        Ok(text) => {
+            let blocks = parse_blocks(&text);
+            match blocks.last() {
+                Some(block) if !build_system_sensors(block).is_empty() => {
+                    ("available".to_string(), None)
+                }
+                Some(_) => (
+                    "degraded".to_string(),
+                    Some("SP_daemon 有输出但未解析出白名单指标".to_string()),
+                ),
+                None => (
+                    "unavailable".to_string(),
+                    Some("SP_daemon 无数据输出（设备可能不支持）".to_string()),
+                ),
             }
-            Err(error) => collector::CapabilityStatus {
-                status: "unavailable".to_string(),
-                reason: Some(error.to_string()),
-            },
-        };
-        set_capability(py, &capabilities, name, &status)?;
-    }
+        }
+        Err(error) => ("unavailable".to_string(), Some(error.to_string())),
+    };
+    capabilities.set_item(
+        "sp_daemon",
+        capability_to_py(py, &sp_status.0, sp_status.1.as_deref())?,
+    )?;
+
+    // 进程列表（进程选择器用，不在采集循环内）。
+    let process_status = match client.shell(&udid, "ps -ef", 15) {
+        Ok(text) => {
+            if parse_ps_ef(&text).is_empty() {
+                (
+                    "degraded".to_string(),
+                    Some("ps -ef 未解析到进程".to_string()),
+                )
+            } else {
+                ("available".to_string(), None)
+            }
+        }
+        Err(error) => ("unavailable".to_string(), Some(error.to_string())),
+    };
+    capabilities.set_item(
+        "process",
+        capability_to_py(py, &process_status.0, process_status.1.as_deref())?,
+    )?;
+
     result.set_item("capabilities", capabilities)?;
     Ok(result.into())
 }
@@ -612,19 +416,6 @@ fn capability_to_py(py: Python<'_>, status: &str, reason: Option<&str>) -> PyRes
     Ok(value.into())
 }
 
-fn set_capability(
-    py: Python<'_>,
-    capabilities: &Bound<'_, PyDict>,
-    name: &str,
-    status: &collector::CapabilityStatus,
-) -> PyResult<()> {
-    capabilities.set_item(
-        name,
-        capability_to_py(py, &status.status, status.reason.as_deref())?,
-    )?;
-    Ok(())
-}
-
 #[pyclass(name = "Monitor")]
 pub struct PyMonitor {
     inner: std::sync::Arc<MonitorInner>,
@@ -635,26 +426,14 @@ pub struct PyMonitor {
 #[pymethods]
 impl PyMonitor {
     #[new]
-    // 默认关闭 network/gpu/thermal，避免 P0 路径默认突破 4/6 次 HDC shell 预算。
-    // 调用方可通过参数显式开启 optional collector。
-    #[pyo3(signature = (udid, interval=2.0, duration=None, hdc_path=None, process_filter=None, top_n_cpu=10, top_n_gpu=None, enable_aggregation=true, enable_system_cpu=true, enable_system_mem=true, enable_process=true, enable_gpu=false, enable_network=false, enable_thermal_power=false, enable_cpu_freq=false, enable_disk_io=false))]
+    // 0.2.0：唯一数据源 SP_daemon，指标白名单制无需逐项开关；一次采集限一个应用。
+    #[pyo3(signature = (udid, interval=1.0, duration=None, hdc_path=None, package=None))]
     fn new(
         udid: String,
         interval: f64,
         duration: Option<f64>,
         hdc_path: Option<String>,
-        process_filter: Option<Py<PyProcessFilter>>,
-        top_n_cpu: Option<usize>,
-        top_n_gpu: Option<usize>,
-        enable_aggregation: bool,
-        enable_system_cpu: bool,
-        enable_system_mem: bool,
-        enable_process: bool,
-        enable_gpu: bool,
-        enable_network: bool,
-        enable_thermal_power: bool,
-        enable_cpu_freq: bool,
-        enable_disk_io: bool,
+        package: Option<String>,
     ) -> PyResult<Self> {
         if udid.trim().is_empty() {
             return Err(pyo3::exceptions::PyValueError::new_err("udid 不能为空"));
@@ -669,16 +448,11 @@ impl PyMonitor {
                 "duration 必须大于 0",
             ));
         }
-        if top_n_cpu == Some(0) || top_n_gpu == Some(0) {
+        if package.as_ref().is_some_and(|value| value.trim().is_empty()) {
             return Err(pyo3::exceptions::PyValueError::new_err(
-                "top_n_cpu 和 top_n_gpu 必须大于 0 或为 None",
+                "package 不能为空字符串",
             ));
         }
-        let filter = Python::with_gil(|py| {
-            process_filter
-                .as_ref()
-                .map(|value| value.bind(py).borrow().filter.clone())
-        });
         Ok(Self {
             inner: std::sync::Arc::new(MonitorInner::new()),
             config: Some(monitor::MonitorConfigOwned {
@@ -686,18 +460,7 @@ impl PyMonitor {
                 hdc_path,
                 interval,
                 duration,
-                process_filter: filter,
-                top_n_cpu,
-                top_n_gpu,
-                enable_aggregation,
-                enable_system_cpu,
-                enable_system_mem,
-                enable_process,
-                enable_gpu,
-                enable_network,
-                enable_thermal_power,
-                enable_cpu_freq,
-                enable_disk_io,
+                package,
             }),
             handle: std::sync::Mutex::new(None),
         })
@@ -778,7 +541,6 @@ fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add("HdcError", error::HdcError::type_object_bound(m.py()))?;
     m.add_class::<PyHdcErrorKind>()?;
-    m.add_class::<PyProcessFilter>()?;
     m.add_class::<PyMonitorResult>()?;
     m.add_class::<PySample>()?;
     m.add_class::<PyMonitor>()?;

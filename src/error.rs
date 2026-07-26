@@ -12,7 +12,6 @@ pub enum HdcErrorKind {
     TargetOffline,
     Timeout,
     CommandFailed,
-    ParseFailed,
 }
 
 impl HdcErrorKind {
@@ -22,7 +21,6 @@ impl HdcErrorKind {
             Self::TargetOffline => "target_offline",
             Self::Timeout => "timeout",
             Self::CommandFailed => "command_failed",
-            Self::ParseFailed => "parse_failed",
         }
     }
 }
@@ -39,8 +37,6 @@ pub enum Error {
     Cancelled(String),
     #[error("HDC 命令失败: {0}")]
     CommandFailed(String),
-    #[error("HDC 输出解析失败: {0}")]
-    ParseFailed(String),
     #[error("启动 HDC 进程失败: {0}")]
     Io(#[from] std::io::Error),
 }
@@ -53,7 +49,6 @@ impl Error {
             Self::Timeout(_) => HdcErrorKind::Timeout,
             Self::Cancelled(_) => HdcErrorKind::Timeout,
             Self::CommandFailed(_) | Self::Io(_) => HdcErrorKind::CommandFailed,
-            Self::ParseFailed(_) => HdcErrorKind::ParseFailed,
         }
     }
 }
@@ -63,9 +58,8 @@ pub fn to_py_err(error: Error) -> pyo3::PyErr {
     match error {
         Error::HdcNotFound(_) => PyFileNotFoundError::new_err(message),
         Error::Timeout(_) | Error::Cancelled(_) => PyTimeoutError::new_err(message),
-        Error::TargetOffline(_)
-        | Error::CommandFailed(_)
-        | Error::ParseFailed(_)
-        | Error::Io(_) => PyRuntimeError::new_err(message),
+        Error::TargetOffline(_) | Error::CommandFailed(_) | Error::Io(_) => {
+            PyRuntimeError::new_err(message)
+        }
     }
 }

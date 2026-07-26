@@ -5,7 +5,7 @@ perfwin 兼容契约测试骨架。
 已实现的公共 API 契约直接通过；依赖真实 HDC target 的 Monitor 启停和样本字段测试保留为待真机/FakeHdc 验证。
 
 契约覆盖：
-  - ProcessFilter 参数互斥
+  - Monitor 构造参数校验（0.2.0：interval>=1、package 单应用）
   - Monitor 上下文管理器协议
   - get_result().samples 结构
   - to_dicts() 稳定公共 API
@@ -17,55 +17,53 @@ perfwin 兼容契约测试骨架。
 
 import pytest
 
-# Monitor 和 ProcessFilter 由 PyO3 扩展提供；导入失败时仍允许解析测试文件。
+# Monitor 由 PyO3 扩展提供；导入失败时仍允许解析测试文件。
 try:
     import perfharmony
     _HAS_MONITOR = hasattr(perfharmony, "Monitor")
-    _HAS_FILTER = hasattr(perfharmony, "ProcessFilter")
 except ImportError:
     _HAS_MONITOR = False
-    _HAS_FILTER = False
 
 
 # ---------------------------------------------------------------------------
-# ProcessFilter 契约
+# Monitor 构造参数契约（0.2.0：SP_daemon 唯一数据源）
 # ---------------------------------------------------------------------------
 
-def test_process_filter_pids():
-    """ProcessFilter(pids=[...]) 可构造。"""
-    f = perfharmony.ProcessFilter(pids=[1, 2, 3])
-    assert f is not None
+def test_monitor_rejects_empty_udid():
+    """udid 为空必须报错。"""
+    with pytest.raises(ValueError):
+        perfharmony.Monitor(udid="")
 
 
-def test_process_filter_names():
-    """ProcessFilter(names=[...]) 可构造。"""
-    f = perfharmony.ProcessFilter(names=["com.example.app"])
-    assert f is not None
+def test_monitor_rejects_sub_second_interval():
+    """SP_daemon 固定 1s 一拍，interval 必须 >= 1 秒。"""
+    with pytest.raises(ValueError):
+        perfharmony.Monitor(udid="TEST_UDID_FAKE", interval=0.5)
 
 
-def test_process_filter_name_single():
-    """ProcessFilter(name=...) 可构造。"""
-    f = perfharmony.ProcessFilter(name="com.example.app")
-    assert f is not None
+def test_monitor_rejects_non_positive_duration():
+    """duration 必须大于 0。"""
+    with pytest.raises(ValueError):
+        perfharmony.Monitor(udid="TEST_UDID_FAKE", interval=2.0, duration=0)
 
 
-def test_process_filter_name_regex():
-    """ProcessFilter(name_regex=...) 可构造。"""
-    f = perfharmony.ProcessFilter(name_regex=r"^com\.example\.")
-    assert f is not None
+def test_monitor_rejects_blank_package():
+    """package 不能是空字符串（一次采集限一个应用）。"""
+    with pytest.raises(ValueError):
+        perfharmony.Monitor(udid="TEST_UDID_FAKE", interval=2.0, package="  ")
 
 
-def test_process_filter_mutually_exclusive():
-    """pids 与 names 不能同时传入。"""
-    with pytest.raises((ValueError, TypeError)):
-        perfharmony.ProcessFilter(pids=[1], names=["foo"])
+def test_monitor_accepts_package():
+    """package 传入合法包名可构造。"""
+    monitor = perfharmony.Monitor(
+        udid="TEST_UDID_FAKE", interval=2.0, package="com.example.app"
+    )
+    assert monitor is not None
 
 
-def test_process_filter_requires_at_least_one():
-    """空 ProcessFilter 必须抛出异常或是合法的「无过滤」语义（与 perfwin 一致）。"""
-    # 与 perfwin 行为对齐；如果允许空则修改断言
-    with pytest.raises((ValueError, TypeError)):
-        perfharmony.ProcessFilter()
+def test_process_filter_removed_in_020():
+    """0.2.0 已删除 ProcessFilter（改用 package 单应用采集）。"""
+    assert not hasattr(perfharmony, "ProcessFilter")
 
 
 # ---------------------------------------------------------------------------

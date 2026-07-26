@@ -1,8 +1,9 @@
 use std::collections::HashMap;
-use std::io::Read;
+use std::io::{BufRead, BufReader, Read};
 use std::path::PathBuf;
 use std::process::{Child, Command, Output, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{Receiver, RecvTimeoutError};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -124,8 +125,55 @@ impl HdcClient {
         Ok(text)
     }
 
+    #[cfg(test)]
     pub fn shell_args<'a>(&self, udid: &'a str, command: &'a str) -> [&'a str; 4] {
         ["-t", udid, "shell", command]
+    }
+
+    /// 打开长跑 shell 流（SP_daemon 连续采集等）：stdout 逐行经 channel 推送。
+    ///
+    /// 与 `run` 不同，流不持有 target 锁——SP_daemon 一跑可达数小时，期间
+    /// `ps -ef` 等短命令仍需通过；hdc server 本身支持同设备多会话并发。
+    pub fn shell_stream(&self, udid: &str, command: &str) -> Result<ShellStream, Error> {
+        if udid.trim().is_empty() {
+            return Err(Error::TargetOffline("udid 为空".to_string()));
+        }
+        let mut child = new_hdc_command(&self.path)
+            .args(["-t", udid, "shell", command])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|error| {
+                if error.kind() == std::io::ErrorKind::NotFound {
+                    Error::HdcNotFound(self.path.clone())
+                } else {
+                    Error::Io(error)
+                }
+            })?;
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| Error::CommandFailed("无法获取 hdc stdout 管道".to_string()))?;
+        let (sender, receiver) = std::sync::mpsc::channel::<String>();
+        thread::Builder::new()
+            .name("perfharmony-stream-reader".to_string())
+            .spawn(move || {
+                let reader = BufReader::new(stdout);
+                for line in reader.lines() {
+                    let Ok(line) = line else { break };
+                    if sender.send(line).is_err() {
+                        break;
+                    }
+                }
+            })
+            .map_err(Error::Io)?;
+        // stderr 仍需排空，防止 hdc 因写满管道而阻塞。
+        let stderr_reader = child.stderr.take().map(spawn_pipe_reader);
+        Ok(ShellStream {
+            child,
+            receiver,
+            stderr_reader,
+        })
     }
 
     fn run(
@@ -160,6 +208,12 @@ impl HdcClient {
                 }
             })?;
 
+        // Windows 匿名管道缓冲仅约 64KB，真机 hidumper --mem 输出可超过 75KB；
+        // 若等子进程退出后再读，hdc 会因写满管道而阻塞、直到超时被杀。
+        // 必须在子进程运行期间用后台线程持续排空 stdout/stderr。
+        let stdout_reader = child.stdout.take().map(spawn_pipe_reader);
+        let stderr_reader = child.stderr.take().map(spawn_pipe_reader);
+
         let deadline = Instant::now() + timeout;
         loop {
             if cancel.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
@@ -171,7 +225,13 @@ impl HdcClient {
                 )));
             }
             match child.try_wait()? {
-                Some(status) => return collect_output(child, status),
+                Some(status) => {
+                    return Ok(Output {
+                        status,
+                        stdout: join_pipe_reader(stdout_reader),
+                        stderr: join_pipe_reader(stderr_reader),
+                    });
+                }
                 None if Instant::now() >= deadline => {
                     terminate_child(&mut child);
                     return Err(Error::Timeout(format!(
@@ -184,6 +244,65 @@ impl HdcClient {
             }
         }
     }
+}
+
+fn spawn_pipe_reader<R: Read + Send + 'static>(mut pipe: R) -> thread::JoinHandle<Vec<u8>> {
+    thread::spawn(move || {
+        let mut buffer = Vec::new();
+        let _ = pipe.read_to_end(&mut buffer);
+        buffer
+    })
+}
+
+/// 长跑流读取事件。
+#[derive(Debug)]
+pub enum StreamEvent {
+    /// 读到一行（不含行尾符）。
+    Line(String),
+    /// 等待超时，本轮无新行（调用方借此检查停止标志）。
+    Idle,
+    /// 流已结束（设备端进程退出或 hdc 断开）。
+    Closed,
+}
+
+/// SP_daemon 等长跑命令的 stdout 行流句柄；drop 时确保杀掉 hdc 子进程。
+#[derive(Debug)]
+pub struct ShellStream {
+    child: Child,
+    receiver: Receiver<String>,
+    stderr_reader: Option<thread::JoinHandle<Vec<u8>>>,
+}
+
+impl ShellStream {
+    /// 等待下一行；在 `timeout` 内无新行返回 `Idle`。
+    pub fn next_line(&mut self, timeout: Duration) -> StreamEvent {
+        match self.receiver.recv_timeout(timeout) {
+            Ok(line) => StreamEvent::Line(line),
+            Err(RecvTimeoutError::Timeout) => StreamEvent::Idle,
+            Err(RecvTimeoutError::Disconnected) => StreamEvent::Closed,
+        }
+    }
+
+    /// 终止本地 hdc 子进程（设备端 SP_daemon 由调用方 pkill 清理）。
+    pub fn stop(&mut self) {
+        terminate_child(&mut self.child);
+        if let Some(handle) = self.stderr_reader.take() {
+            let _ = handle.join();
+        }
+    }
+}
+
+impl Drop for ShellStream {
+    fn drop(&mut self) {
+        self.stop();
+    }
+}
+
+
+fn join_pipe_reader(handle: Option<thread::JoinHandle<Vec<u8>>>) -> Vec<u8> {
+    handle
+        .and_then(|reader| reader.join().ok())
+        .unwrap_or_default()
 }
 
 fn acquire_target_lock<'a>(
@@ -205,22 +324,6 @@ fn acquire_target_lock<'a>(
             Err(std::sync::TryLockError::WouldBlock) => thread::sleep(Duration::from_millis(10)),
         }
     }
-}
-
-fn collect_output(mut child: Child, status: std::process::ExitStatus) -> Result<Output, Error> {
-    let mut stdout = Vec::new();
-    let mut stderr = Vec::new();
-    if let Some(mut pipe) = child.stdout.take() {
-        pipe.read_to_end(&mut stdout)?;
-    }
-    if let Some(mut pipe) = child.stderr.take() {
-        pipe.read_to_end(&mut stderr)?;
-    }
-    Ok(Output {
-        status,
-        stdout,
-        stderr,
-    })
 }
 
 fn terminate_child(child: &mut Child) {
