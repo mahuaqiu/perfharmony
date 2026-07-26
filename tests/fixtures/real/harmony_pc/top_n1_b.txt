@@ -1,0 +1,189 @@
+# device: HAD-W32 HAD-W24 6.1.0.130(SP13ENTC293E107R2P1log) API 24
+Tasks: 183 total,   1 running, 182 sleeping,   0 stopped,   0 zombie
+  Mem:    31914M total,    30733M used,     1181M free,        0M buffers
+ Swap:    51200M total,      679M used,    50520M free,    22427M cached
+2000%cpu   57%user    0%nice   29%sys 1914%idle    0%iow    0%irq    0%sirq    0%host
+   PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+ 14751 20154         0 -20 6.1G 128M  49M S 57.1   0.4   9:56.96 com.hisec.endpoint:EDRManager1
+  8761 shell        20   0 2.0G 7.2M 6.4M R 17.8   0.0   0:00.09 top -n 1 -b
+  1664 logd         20   0 2.0G 1.7M 1.5M S  3.5   0.0   8:07.03 chargelogcat logcat -b chargelogcat
+   632 logd         20   0 2.0G 8.1M 5.2M S  3.5   0.0 221:12.94 hilogd
+    69 root         20   0  37G 108M  23M S  3.5   0.3 1716:45.44 devhost.elf /lib/libdh-linux.so.5.10-oh --irqthread_affinity  --extensions /lib/extension/libdhext_net_socket.so:/lib/extension/libdhext_transfs.so.0:/lib/extension/libdhext_kstate.so.0:/lib/extension/libdhext_fileguard.so.0:/lib/extension/libdhext_tracefs.so.0:/lib/extension/libdhext_iaware_notify.so.0:/lib/extension/libdhext_file_info.so.0 --total_poolcfg  --pools name=common,type=discrete,rsv=dyn,sizeorder=15,reclaimorder=15:name=pagecache,type=discrete,rsv=dyn,sizeorder=15,reclaimorder=15:name=dma,type=discrete,rsv=dyn,sizeorder=15,reclaimorder=15:name=rsv,type=discrete,rsv=dyn,sizeorder=15,reclaimorder=15,high_watermark=32,low_watermark=32 --isolate  --args  --pre_extensions /lib/extension/libdhext_hisi.so.0
+  8166 root         RT -20 6.0G  93M  29M S  0.0   0.2   0:00.01 apppool
+  7340 20020027      0 -20 6.0G 164M  90M S  0.0   0.5   0:00.47 com.huawei.hmos.aidataservice.1
+  7220 file_system_service 20 0 2.0G 14M 13M S 0.0 0.0   0:00.24 file_system_service
+  6949 space_mgr_service 20 0 2.1G 32M 29M S 0.0   0.0   0:00.10 space_mgr_service
+  6937 el5_filekey_manager 0 -20 2.0G 18M 16M S 0.0 0.0  0:00.08 el5_filekey_manager
+ 53204 bms_behavior 20   0 2.0G 4.0M 3.1M S  0.0   0.0   0:10.69 bms_behavior
+ 52955 shell        20   0 2.0G 9.3M 6.8M S  0.0   0.0   0:04.24 hdcd
+ 52531 usb          20   0 2.1G  22M  18M S  0.0   0.0   0:00.72 usb_service
+ 44305 nearlink     RT   0 2.0G  20M  18M S  0.0   0.0   0:00.35 nearlink_service
+ 44132 wifi         20   0 2.0G  11M 8.8M S  0.0   0.0   0:00.67 wpa_host                -i 15 -n wpa_host
+ 44106 contexthub_ble_host 0 -20 2.0G 5.3M 4.2M S 0.0 0.0 0:00.08 contexthub_ble_host     -i 18 -n contexthub_ble_host
+ 43609 bluetooth    RT   0 2.1G  27M  23M S  0.0   0.0   1:59.39 bluetooth_service
+ 40874 20020035     10 -10 6.3G 326M 161M S  0.0   1.0   0:09.33 com.huawei.hmos.inputmethod:inputMethod
+ 58505 20020032      0 -20 6.0G 114M  42M S  0.0   0.3   0:00.44 com.huawei.hms.adsservice
+ 29928 20020064      0 -20 6.0G 132M  55M S  0.0   0.4   0:11.87 com.huawei.hmos.ouc:workScheduler
+ 28896 20020149      0 -20 6.1G 155M  64M S  0.0   0.4   7:19.46 com.huawei.his.xgate.esm
+ 18837 20020024      0 -20 6.0G 136M  61M S  0.0   0.4   0:24.62 com.huawei.hmos.asde:workScheduler
+ 59068 20020088      0 -20 6.0G 140M  58M S  0.0   0.4   1:12.79 com.huawei.hmos.hsdr:workScheduler
+ 12926 20100043      0 -20  39G 100M  89M S  0.0   0.3   0:20.95 com.huawei.his.hismall:gpu
+ 12568 20020150      0 -20 6.8G 242M 123M S  0.0   0.7  25:42.69 com.huawei.mbs.ismp.ep.epc.oh.ui
+ 12373 20020048      0 -20  38G 264M 161M S  0.0   0.8   1:34.67 com.huawei.his.hismall
+ 56595 atomicservice_distribution 20 0 2.2G 30M 25M S 0.0 0.0 0:02.65 atomicservice_ecological_rule_manager
+ 33149 20020134     10 -10 6.0G 105M  34M S  0.0   0.3   1:05.04 com.ohos.notificationdialog:EnableNotificationDialog:60
+ 37101 hwf_service  20   0 2.2G  36M  30M S  0.0   0.1   0:04.63 hwf_service
+ 38512 hwf_service  20   0 2.2G  28M  26M S  0.0   0.0   5:35.00 vm_manager
+  3890 20008         0 -20 6.0G 116M  43M S  0.0   0.3   1:00.50 com.huawei.hms.pafservice
+ 48498 20020022      0 -20 6.1G 113M  42M S  0.0   0.3   2:34.57 com.ohos.FusionSearch
+ 29619 20020155     10 -10 6.5G 241M  59M S  0.0   0.7  23:46.67 tech.sanway.ecoengine.kds
+ 20819 download     20   0 2.2G  24M  19M S  0.0   0.0  12:00.64 download_server
+ 15415 security_collector 20 0 2.1G 13M 8.4M S 0.0 0.0  15:47.92 security_collector
+ 15068 20100004      0 -20 133G 103M  70M S  0.0   0.3   1:22.06 com.huawei.his.xgate:render
+ 15066 20100003      0 -20 133G  37M  32M S  0.0   0.1   0:14.44 com.huawei.his.xgate:render
+ 14818 20100001      0 -20  39G  44M  34M S  0.0   0.1   0:44.40 com.huawei.his.xgate:gpu
+ 14767 20154         0 -20 6.2G 203M  54M S  0.0   0.6  64:39.59 com.hisec.endpoint:EDRScanner2
+ 14746 20154         0 -20 6.2G 133M  51M S  0.0   0.4   5:54.74 com.hisec.endpoint:EDRMaster0
+ 14573 20020148     10 -10  39G 229M 120M S  0.0   0.7  17:13.42 com.huawei.his.xgate
+ 14568 20020149      0 -20 6.0G 100M  41M S  0.0   0.3   1:08.14 com.huawei.his.xgate.esm:sso
+ 14555 20020149      0 -20 6.4G  99M  38M S  0.0   0.3   1:11.88 com.huawei.his.xgate.esm:dsc
+ 14546 20154         0 -20 6.1G 117M  44M S  0.0   0.3   1:00.14 com.hisec.endpoint
+ 14165 20020119      0 -20 6.0G  91M  29M S  0.0   0.2   0:00.47 com.huawei.hmos.numberidentity
+ 14005 20020106      0 -20 6.1G 103M  35M S  0.0   0.3   0:04.13 com.ohos.contactsdataability
+ 13001 gamecontroller_server 20 0 2.0G 4.2M 2.9M S 0.0 0.0 0:02.04 gamecontroller_server
+ 12599 gameservice_server 20 0 2.2G 37M 30M S 0.0  0.1   0:14.01 gameservice_server
+ 12105 enterprise_account 20 0 2.1G 23M 20M S 0.0  0.0   0:29.14 enterprise_account_auth_service
+  8784 nwebspawn    20   0 2.2G  17M  13M S  0.0   0.0   0:05.78 nwebspawn
+  8637 appgallery_service 20 0 2.1G 10M 6.4M S 0.0 0.0   0:08.66 appgallery_service
+  8400 20020034     -2 -10 6.0G 144M  64M S  0.0   0.4   1:24.42 com.ohos.sceneboard:EngineServiceAbility:1
+  8069 pasteboard   20   0 2.1G  12M  10M S  0.0   0.0   0:04.18 pasteboard_service
+  7262 20020086      0 -20 6.1G 120M  44M S  0.0   0.3   1:15.15 com.ohos.medialibrary.medialibrarydata
+  7177 20020027      0 -20 6.1G 168M  78M S  0.0   0.5   3:20.30 com.huawei.hmos.aidataservice
+  6982 20020031      0 -20 6.0G  98M  31M S  0.0   0.3   0:00.63 com.huawei.hmos.aidispatchservice
+  6864 20020034     RT -10  11G 622M 227M S  0.0   1.9  10:18.25 com.ohos.sceneboard
+  5199 cert_manager_server 20 0 2.0G 9.0M 6.9M S 0.0 0.0 0:05.87 cert_manager_service
+  5170 20006         0 -20 6.0G  99M  33M S  0.0   0.3   1:06.67 com.huawei.his.xgate.mdm:enterpriseAdmin
+  5094 20005         0 -20 6.0G 115M  41M S  0.0   0.3   1:10.14 com.huawei.hms.pushservice
+  5038 edm          20   0 2.2G  39M  34M S  0.0   0.1   4:58.14 edm
+  4388 deviceinfo   20   0 2.0G 2.6M 1.5M S  0.0   0.0   0:02.43 deviceinfoservice
+  4263 20002         0 -20 6.1G 129M  48M S  0.0   0.4   0:02.75 com.huawei.hmsapp.samplemanagement
+  4255 20006         0 -20 6.1G 163M  77M S  0.0   0.5   4:29.94 com.huawei.his.xgate.mdm
+  4241 20007         0 -20 6.0G 118M  46M S  0.0   0.3   1:05.64 com.huawei.hmos.location
+  4147 asset_service 20  0 2.0G  16M  14M S  0.0   0.0   0:08.45 asset_service
+  3697 wifi         20   0 2.2G  26M  22M S  0.0   0.0   9:06.66 wifi_manager_service
+  3069 dms          20   0 2.1G  15M  11M S  0.0   0.0   1:46.81 deviceprofile
+  3026 root         20   0 2.0G 1.2M 416K S  0.0   0.0  23:12.96 oam_hisi
+  3024 gps           0 -20 2.0G 3.2M 2.0M S  0.0   0.0   0:01.23 hignss_110x_ohos -normal
+  2694 location_host 20  0 2.0G 1.3M 672K S  0.0   0.0   0:01.28 location_host           -i 17 -n location_host
+  2102 tp_host      21   1 2.0G 4.7M 3.9M S  0.0   0.0   0:02.00 thp_extra
+  2087 CollaborationFwk 20 0 2.3G 34M 26M S  0.0   0.1   2:02.51 CollaborationFwk
+  2082 account      20   0 2.0G  15M  14M S  0.0   0.0   3:16.48 accountmgr
+  2046 aps_manager  20   0 2.0G 5.7M 4.7M S  0.0   0.0   0:13.61 aps_manager
+  2042 av_session   20   0 2.1G 8.7M 6.8M S  0.0   0.0   0:33.83 av_session
+  2041 batterycare_service 20 0 2.2G 19M 16M S 0.0 0.0   0:54.87 batterycare_service
+  2038 cameraserver 20   0 2.2G  14M  11M S  0.0   0.0  13:29.78 camera_service
+  2030 cccs         20   0 2.0G 5.5M 3.7M S  0.0   0.0   0:13.67 client_cloud_cache_service
+  2010 dfs          20   0 2.1G 8.2M 7.0M S  0.0   0.0   0:32.98 cloudfiledaemon
+  1992 code_protect 20   0 2.0G 4.0M 2.9M S  0.0   0.0   0:10.84 code_protect
+  1990 data_monitor_service 20 0 2.0G 1.6M 1.4M S 0.0 0.0 0:46.87 data_monitor_service
+  1989 display_engine_service 20 0 2.0G 7.6M 6.5M S 0.0 0.0 1:33.04 display_engine_service
+  1987 ddms         20   0 2.1G  29M  23M S  0.0   0.0   9:24.10 distributeddata
+  1985 drmserver    20   0 2.0G 3.5M 3.0M S  0.0   0.0   1:00.57 drm_service
+  1980 file_guard   20   0 2.2G 5.5M 4.0M S  0.0   0.0   2:56.57 file_guard
+  1976 foundation    0 -20 2.5G 124M  75M S  0.0   0.3  30:56.61 foundation
+  1975 fusion_connectivity_manager_ext 20 0 2.0G 6.8M 5.8M S 0.0 0.0 0:09.63 fusion_connectivity_manager_ext
+  1955 graphics     RT  -8 6.7G 237M  90M S  0.0   0.7 353:04.60 render_service
+  1925 hianalytics  20   0 2.2G  29M  22M S  0.0   0.0   6:11.44 hianalytics
+  1924 huawei_id    20   0 2.1G  20M  17M S  0.0   0.0   0:19.43 huawei_id_svc
+  1923 inputmethod  20   0 2.2G  14M  12M S  0.0   0.0   0:41.13 inputmethod_service
+  1921 sysselection  0 -20 2.1G 6.9M 5.6M S  0.0   0.0   0:15.60 selection_service
+  1868 media_monitor 20  0 2.0G 2.2M 1.2M S  0.0   0.0   0:05.28 media_monitor
+  1847 media        RT   0 2.3G  32M  25M S  0.0   0.1   0:44.95 media_service
+  1842 netsysnative 20   0 2.0G 9.2M 6.8M S  0.0   0.0  20:10.56 netsysnative
+  1841 powermgr      0 -20 2.1G  19M  17M S  0.0   0.0   5:48.51 powermgr
+  1812 access_token  0 -20 2.0G 8.6M 7.2M S  0.0   0.0   0:48.62 privacy_service
+  1810 media        20   0 2.0G 7.9M 5.8M S  0.0   0.0 304:19.15 av_codec_service
+  1782 media        20   0 2.0G 872K 320K S  0.0   0.0  31:19.02 isplogcat
+  1776 pin_auth_host 20  0 2.0G 4.0M 3.3M S  0.0   0.0   0:11.76 pin_auth_host           -i 24 -n pin_auth_host
+  1771 sandbox_manager 20 0 2.0G 2.8M 1.5M S 0.0   0.0   0:02.74 sandbox_manager_service
+  1768 security_guard 20 0 2.1G  19M  16M S  0.0   0.0  95:03.58 security_guard
+  1762 sensor       20   0 2.0G 5.5M 4.4M S  0.0   0.0   7:25.70 sensors
+  1753 dsoftbus     20   0 2.1G  20M  17M S  0.0   0.0   5:00.38 softbus_server
+  1738 uiserver     20   0 2.0G 4.8M 4.0M S  0.0   0.0   0:14.39 ui_service
+  1733 useriam      20   0 2.1G 8.4M 6.9M S  0.0   0.0   1:21.03 useriam
+  1732 shlogd       20   0 2.0G 984K 648K S  0.0   0.0   1:20.07 shs
+  1730 virus_protection_service 20 0 2.2G 15M 12M S 0.0 0.0 5:17.98 virus_protection_service
+  1728 comm_protocol_resource_manager 20 0 2.0G 7.1M 6.0M S 0.0 0.0 16:58.96 comm_protocol_resource_manager
+  1727 tee          20   0 2.0G 2.0M 1.7M S  0.0   0.0   0:51.10 tlogcat -f
+  1719 fingerprint_auth_host 0 -20 2.0G 4.2M 3.5M S 0.0 0.0 0:12.70 fingerprint_auth_host   -i 26 -n fingerprint_auth_host
+  1705 logd         20   0 2.0G 432K 224K S  0.0   0.0   1:25.31 inputlogcat xlogcat -b inputlogcat
+  1700 nearlink_host 20  0 2.0G 1.9M 1.1M S  0.0   0.0   0:24.12 nearlink_host           -i 1 -n nearlink_host
+  1694 off_find_host 20  0 2.0G 604K 300K S  0.0   0.0   0:01.33 off_find_host           -i 2 -n off_find_host
+  1691 power_host   20   0 2.0G 5.3M 4.5M S  0.0   0.0  39:00.95 power_host              -i 3 -n power_host
+  1689 device_manager 20 0 2.1G  10M 8.4M S  0.0   0.0   1:55.76 device_manager
+  1683 logd         20   0 2.0G 1.7M 1.4M S  0.0   0.0   4:35.37 sleeplogcat xlogcat -b sleeplogcat
+  1679 audio_host   20   0 2.0G 9.1M 5.4M S  0.0   0.0  53:54.21 audio_host              -i 4 -n audio_host
+  1675 blue_host    20   0 2.0G 3.9M 3.2M S  0.0   0.0  56:52.77 blue_host               -i 5 -n blue_host
+  1672 usb_host     20   0 2.0G 2.8M 2.1M S  0.0   0.0   0:52.11 usb_host                -i 7 -n usb_host
+  1670 composer_host RT  0 2.0G  14M  11M S  0.0   0.0 202:21.12 composer_host           -i 9 -n composer_host
+  1661 allocator_host RT 0 2.0G 4.1M 3.6M S  0.0   0.0   0:10.28 allocator_host          -i 10 -n allocator_host
+  1659 radio        20   0 2.0G 4.5M 3.9M S  0.0   0.0   0:07.53 riladapter_host         -i 11 -n riladapter_host
+  1654 sensor_host  20   0 2.0G 4.2M 3.6M S  0.0   0.0 121:28.84 sensor_host             -i 13 -n sensor_host
+  1641 gps          20   0 2.2G  23M  20M S  0.0   0.0   0:43.54 locationhub
+  1639 wifi_host    20   0 2.0G 4.6M 3.9M S  0.0   0.0   1:53.19 wifi_host               -i 14 -n wifi_host
+  1638 codec_host   20   0 2.0G 868K 520K S  0.0   0.0   0:01.31 codec_host              -i 22 -n codec_host
+  1633 connected_tag_host 20 0 2.0G 1.3M 908K S 0.0 0.0  0:20.64 connected_tag_host      -i 23 -n connected_tag_host
+  1629 user_auth_host 20 0 2.0G 3.8M 3.2M S  0.0   0.0   0:03.66 user_auth_host          -i 25 -n user_auth_host
+  1627 task_manager_service 20 0 2.2G 15M 13M S 0.0 0.0  0:32.87 task_manager_service
+  1621 input_user_host 20 0 2.0G 588K 292K S 0.0   0.0   0:01.30 input_user_host         -i 27 -n input_user_host
+  1620 tp_host      20   0 2.0G 4.0M 3.5M S  0.0   0.0   0:02.42 tp_host                 -i 28 -n tp_host
+  1619 lcd_host     20   0 2.0G 620K 284K S  0.0   0.0   0:01.31 lcd_host                -i 29 -n lcd_host
+  1618 factory_host 20   0 2.0G 1.5M 904K S  0.0   0.0   0:05.07 factory_host            -i 30 -n factory_host
+  1615 battery_extra_host 20 0 2.0G 4.2M 3.7M S 0.0 0.0  0:24.47 battery_extra_host      -i 31 -n battery_extra_host
+  1614 perfgenius_host RT -8 2.0G 4.2M 3.5M S 0.0  0.0   0:18.13 perfgenius_host         -i 32 -n perfgenius_host -p -8 -s 5
+  1613 secure_element_host 20 0 2.0G 592K 292K S 0.0 0.0 0:01.49 secure_element_host     -i 35 -n secure_element_host
+  1612 root         21   1 2.1G  46M 6.4M S  0.0   0.1   6:07.53 aptouch_daemon          -i 39 -n aptouch_daemon
+  1570 time         20   0 2.1G 8.1M 6.9M S  0.0   0.0   0:46.35 time_service
+  1494 push         20   0 2.1G  21M  17M S  0.0   0.0   4:11.19 push_manager_service
+  1491 msdp         20   0 2.2G  16M  14M S  0.0   0.0   1:44.06 msdp
+  1485 root         20   0 2.0G 560K 480K S  0.0   0.0   0:14.49 isulad
+  1455 user_data_rw 20   0 2.0G  12M  10M S  0.0   0.0  14:36.89 file_monitor_service
+  1237 wallpaper    20   0 2.1G 1.3M 704K S  0.0   0.0   0:02.49 wallpaper_service
+  1235 radio        20   0 2.2G  27M  19M S  0.0   0.0   2:43.69 telephony
+  1205 net_manager  20   0 2.2G  51M  25M S  0.0   0.1  10:39.09 netmanager
+  1173 access_token  0 -20 2.0G 6.3M 4.1M S  0.0   0.0  23:16.12 accesstoken_service
+  1171 media        20   0 2.4G  36M  24M S  0.0   0.1 307:06.52 CameraDaemon cpro HARDEN
+  1169 mhcserver    20   0 2.0G 444K 148K S  0.0   0.0   0:01.56 mhcserver
+  1147 radio        20   0 2.0G 636K 284K S  0.0   0.0   0:01.75 hinetmanager            -i 12 -n hinetmanager
+  1141 hiaiserver   RT   0 2.1G  10M 7.9M S  0.0   0.0  25:14.54 hiaiserver
+  1137 wireless_hid_ability 20 0 2.0G 6.1M 5.1M S 0.0 0.0 0:04.26 wireless_hid_accessory_manager_ability
+  1110 ressched     -2 -20 2.3G  51M  42M S  0.0   0.1   9:38.14 resource_schedule_service
+  1057 root         -2 -20 2.0G 6.0M 5.0M S  0.0   0.0   0:38.79 resource_schedule_executor
+  1056 nfc_tag      20   0 2.0G 1.2M 740K S  0.0   0.0   0:02.37 nfc_tag_service
+   980 input        20   0 2.2G  34M  27M S  0.0   0.1   5:16.28 multimodalinput
+   959 memmgr       20   0 6.1G  14M  11M S  0.0   0.0   2:45.05 memmgrservice
+   954 huks_server  20   0 2.0G  10M 8.0M S  0.0   0.0   2:32.27 huks_service
+   904 hdc          20   0 2.0G 524K 100K S  0.0   0.0   0:01.77 hdc_credential
+   901 dlp_credential 20 0 2.0G 4.5M 3.2M S  0.0   0.0   0:03.99 dlp_credential_service_sa
+   863 system        0 -20 2.0G 5.9M 5.2M S  0.0   0.0   0:36.55 concurrent_task_service
+   827 audio        20   0 2.4G  23M  15M S  0.0   0.0 235:43.29 audio_server
+   826 accessibility 0 -20 2.2G 7.5M 6.0M S  0.0   0.0   0:16.38 accessibility
+   822 powerct      20   0 2.0G 188K  36K S  0.0   0.0   0:01.76 powerct
+   821 bms_event    20   0 2.0G 1.2M 1.0M S  0.0   0.0   0:26.74 bms_event
+   687 oeminfo_nvme_server 20 0 2.0G 660K 324K S 0.0 0.0 0:04.52 oeminfo_nvme_server
+   684 tee          20   0 2.0G 556K 208K S  0.0   0.0   0:20.56 teecd
+   683 tee          20   0 2.0G 5.9M 5.0M S  0.0   0.0   2:43.06 cadaemon
+   673 root         -2 -20 6.0G  94M  30M S  0.0   0.2   1:52.63 appspawn
+   671 hdf_devmgr   20   0 2.0G 4.6M 3.2M S  0.0   0.0   0:48.95 hdf_devmgr
+   670 hiview       20   0 2.4G  72M  51M S  0.0   0.2 107:57.33 hiview
+   665 paramwatcher 20   0 2.0G 5.0M 4.2M S  0.0   0.0   0:19.71 param_watcher
+   664 samgr         0 -20 2.0G  13M 8.5M S  0.0   0.0   5:44.37 samgr
+   663 root          0 -20 2.0G 4.6M 3.3M S  0.0   0.0   1:14.05 storage_daemon
+   662 storage_manager 20 0 2.0G 8.3M 7.1M S 0.0   0.0   0:18.15 storage_manager
+   647 faultloggerd  0 -20 2.0G 1.1M 840K S  0.0   0.0   0:33.71 faultloggerd
+   608 ueventd      20   0 2.0G 1.3M 692K S  0.0   0.0   0:22.26 ueventd
+   524 root         20   0 2.0G 3.8M 3.4M S  0.0   0.0  11:49.09 hguard.elf hguard.elf
+    65 root         20   0 2.0G  11M 5.3M S  0.0   0.0   0:00.03 devmgr.elf --root-driver of.ko
+    64 root         20   0 2.0G 4.7M 4.3M S  0.0   0.0   0:19.19 crypto.elf hongmeng
+     1 root         20   0 2.0G 6.7M 4.3M S  0.0   0.0   2:15.57 init --second-stage 1733400
+     2 root         20   0  38G 240M  11M S  0.0   0.7 147:56.11 [sysmgr-main]

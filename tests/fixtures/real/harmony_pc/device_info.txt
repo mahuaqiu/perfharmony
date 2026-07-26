@@ -1,0 +1,15 @@
+# device: HUAWEI MateBook Pro (HAD-W32) HAD-W24 6.1.0.130(SP13ENTC293E107R2P1log) API 24
+# 通过 105 Worker cmd_exec 远程抓取（2026-07-26）。
+# 注意：const.product.type / const.product.device_type / const.product.form /
+# const.product.family 在该真机上均不存在（errNum 106），形态分类唯一可用键是
+# const.product.devicetype。
+param get const.product.devicetype -> 2in1
+param get const.product.model -> HAD-W32
+param get const.product.name -> HUAWEI MateBook Pro
+param get const.build.characteristics -> default
+param get const.ohos.apiversion -> 24
+param get const.product.software.version -> HAD-W24 6.1.0.130(SP13ENTC293E107R2P1log)
+param get const.product.type -> Get parameter "const.product.type" fail! errNum is:106!
+param get const.product.device_type -> Get parameter "const.product.device_type" fail! errNum is:106!
+param get const.product.form -> Get parameter "const.product.form" fail! errNum is:106!
+param get const.product.family -> Get parameter "const.product.family" fail! errNum is:106!

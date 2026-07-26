@@ -1,10 +1,10 @@
 # perfharmony
 
-> Implementation status: P0 uses synthetic fixtures/FakeHdc until PC and Mobile real-device command output is frozen. Optional collectors fail closed and never replace unavailable values with zero.
+> 实现状态：Harmony PC 的系统 CPU、系统内存、进程 CPU/内存和 TopN CPU 已有真机 fixture；Harmony Mobile 仍待真机冻结。可选指标采集失败时保持缺失，不以 0 冒充数据。
 
 ## Capability probe and wheel build
 
-`perfharmony.probe(udid)` reports target status and per-capability `available`, `degraded`, or `unavailable` with a reason. `top_n_cpu` and `top_n_gpu` remain reserved and return `None` until a real-device batch CPU snapshot is confirmed.
+`perfharmony.probe(udid)` 会按能力返回 `available`、`degraded` 或 `unavailable` 及原因。Harmony PC 已确认 `top -n 1 -b` 可提供批量 CPU 快照，`top_n_cpu` 已实现；`top_n_gpu` 仍保持 `None`。
 
 ```powershell
 python -m venv .venv
@@ -22,7 +22,7 @@ See [`docs/command-contract.md`](docs/command-contract.md) for shell commands an
 
 - 已提供可编译的 PyO3 包骨架。
 - 已提供 HDC 路径解析、目标列表解析和 shell 客户端。
-- P0 真机采集需要先完成 PC/Mobile 命令输出冻结；没有真机时只能运行 fixture 和 FakeHdc 测试。
+- Harmony PC P0 已按真机输出实现并有 fixture 契约测试；Harmony Mobile 仍只能视为待验证。
 
 开发环境：
 

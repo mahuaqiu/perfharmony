@@ -470,7 +470,7 @@ fn probe(udid: String, hdc_path: Option<String>, py: Python<'_>) -> PyResult<Py<
         result.set_item("capabilities", capabilities)?;
         return Ok(result.into());
     };
-    if !target.status.eq_ignore_ascii_case("ready") {
+    if !target.is_usable() {
         result.set_item("udid", &udid)?;
         result.set_item(
             "target",
@@ -662,6 +662,11 @@ impl PyMonitor {
                 "duration 必须大于 0",
             ));
         }
+        if top_n_cpu == Some(0) || top_n_gpu == Some(0) {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "top_n_cpu 和 top_n_gpu 必须大于 0 或为 None",
+            ));
+        }
         let filter = Python::with_gil(|py| {
             process_filter
                 .as_ref()
@@ -697,10 +702,7 @@ impl PyMonitor {
         let target = parse_list_targets(&targets)
             .into_iter()
             .find(|item| item.udid == config.udid);
-        if target
-            .as_ref()
-            .is_none_or(|item| !item.status.eq_ignore_ascii_case("ready"))
-        {
+        if target.as_ref().is_none_or(|item| !item.is_usable()) {
             return Err(error::to_py_err(error::Error::TargetOffline(config.udid)));
         }
 
@@ -764,7 +766,7 @@ impl PyMonitor {
 
 #[pymodule]
 fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add("__version__", "0.1.0")?;
+    m.add("__version__", "0.1.1")?;
     m.add("HdcError", error::HdcError::type_object_bound(m.py()))?;
     m.add_class::<PyHdcErrorKind>()?;
     m.add_class::<PyProcessFilter>()?;

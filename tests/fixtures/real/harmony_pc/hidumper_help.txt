@@ -1,0 +1,28 @@
+# device: HAD-W32 HAD-W24 6.1.0.130(SP13ENTC293E107R2P1log) API 24
+usage:
+  -h                          |help text for the tool
+  -lc                         |a list of system information clusters
+  -ls                         |a list of system abilities
+  -c                          |all system information clusters
+  -c [base system]            |system information clusters labeled "base" and "system"
+  -s                          |all system abilities
+  -s [SA0 SA1]                |system abilities labeled "SA0" and "SA1"
+  -s [SA] -a ['-h']           |system ability labeled "SA" with arguments "-h" specified
+  -e                          |faultlogs of crash history
+  -e --list [process_name] [-n num] [--since timestamp] [--until timestamp]  |dump list of abnormal exits
+  -e --print [process_name] [-n num] [--since timestamp] [--until timestamp]  |dump faultlogs of abnormal exits
+  -e --print record_id        |dump faultlogs of the specified record
+  --net [pid]                 |dump network information; if pid is specified, dump traffic usage of specified pid
+  --storage [pid]             |dump storage information; if pid is specified, dump /proc/pid/io
+  -p                          |processes information, include list and infromation of processes and threads
+  -p [pid]                    |dump threads under pid, includes smap, block channel, execute time, mountinfo
+  --cpufreq                   |dump real CPU frequency of each core
+  --mem [pid] [--prune]       |dump memory usage of total; dump memory usage of specified pid if pid was specified; dump simplified memory information if prune is specified and not support dumped simplified memory information of specified pid
+  --mem [pid] [--show-ashmem]   |show ashmem info when dumping memory of specified pid
+  --mem [pid] [--show-dmabuf]   |show dmabuf info when dumping memory of specified pid
+  --zip                       |compress output to /data/log/hidumper
+  --mem-smaps pid [-v]        |display statistic in /proc/pid/smaps, use -v specify more details
+  --mem-jsheap pid [-T tid] [--gc] [--leakobj] [--raw] [--clean]  |triggerGC, dumpHeapSnapshot, dumpRawHeap and dumpLeakList under pid and tid
+  --mem-cjheap pid [--gc]     |the pid should belong to the Cangjie process; triggerGC and dumpHeapSnapshot under pid
+  --ipc pid ARG               |ipc load statistic; pid must be specified or set to -a dump all processes. ARG must be one of --start-stat | --stop-stat | --stat
+  --cpuusage [pid]            |dump cpu usage by processes and category; if PID is specified, dump category usage of specified pid

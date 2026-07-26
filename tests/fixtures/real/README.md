@@ -4,7 +4,8 @@
 
 ## 状态
 
-⏳ 等待真机接入（参见 ISSUE-001）
+- `harmony_pc/`：已冻结 HAD-W32（HarmonyOS 6.1.0.130，API 24）真机输出
+- `harmony_mobile/`：等待真机接入
 
 ## 目录规划
 

@@ -1,0 +1,614 @@
+# device: HAD-W32 HAD-W24 6.1.0.130(SP13ENTC293E107R2P1log) API 24
+-------------------------------[memory]-------------------------------
+Total Memory Usage by PID:
+PID        Total Pss(xxx in SwapPss)    Total Vss    Total Rss    Total Uss           GL        Graph          Dma      PurgSum      PurgPin     Name            
+1           5221(1548 in SwapPss) kB   2168308 kB      6956 kB      3320 kB         0 kB         0 kB         0 kB         0 kB         0 kB     init            
+2            207443(0 in SwapPss) kB  39404256 kB    210916 kB    204564 kB         0 kB         0 kB         0 kB         0 kB         0 kB     sysmgr-main     
+64             2102(0 in SwapPss) kB   2144560 kB      4964 kB       860 kB         0 kB         0 kB         0 kB         0 kB         0 kB     crypto.elf      
+65             8462(0 in SwapPss) kB   2156088 kB     11864 kB      6852 kB         0 kB         0 kB         0 kB         0 kB         0 kB     devmgr.elf      
+69           105066(0 in SwapPss) kB  38757360 kB    110592 kB    101412 kB         0 kB         0 kB         0 kB         0 kB         0 kB     devhost.elf     
+524            2271(0 in SwapPss) kB   2142668 kB      3900 kB      1596 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hguard.elf      
+608          1878(976 in SwapPss) kB   2129632 kB      1448 kB       892 kB         0 kB         0 kB         0 kB         0 kB         0 kB     ueventd         
+632          5608(956 in SwapPss) kB   2174484 kB      8900 kB      4580 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hilogd          
+647          1312(688 in SwapPss) kB   2151436 kB      1224 kB       616 kB         0 kB         0 kB         0 kB         0 kB         0 kB     faultloggerd    
+662         4449(1640 in SwapPss) kB   2189180 kB     11100 kB      2500 kB         0 kB         0 kB         0 kB         0 kB         0 kB     storage_manager 
+663         7433(2956 in SwapPss) kB   2196304 kB     12948 kB      4056 kB         0 kB         0 kB         0 kB         0 kB         0 kB     storage_daemon  
+664            6171(0 in SwapPss) kB   2189592 kB     13532 kB      5988 kB         0 kB         0 kB         0 kB         0 kB         0 kB     samgr           
+665         2375(1048 in SwapPss) kB   2172272 kB      5232 kB      1028 kB         0 kB         0 kB         0 kB         0 kB         0 kB     param_watcher   
+670        48216(4840 in SwapPss) kB   2535736 kB     77604 kB     40128 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hiview          
+671            2030(0 in SwapPss) kB   2155276 kB      5120 kB      1980 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hdf_devmgr      
+673            5598(0 in SwapPss) kB   6321188 kB     95968 kB       396 kB         0 kB         0 kB         0 kB         0 kB         0 kB     appspawn        
+683         3286(1888 in SwapPss) kB   2177360 kB      6264 kB      1292 kB         0 kB         0 kB         0 kB         0 kB         0 kB     cadaemon        
+684          1166(704 in SwapPss) kB   2154928 kB      2352 kB       444 kB         0 kB         0 kB         0 kB         0 kB         0 kB     teecd           
+687          1277(728 in SwapPss) kB   2149752 kB      2568 kB       520 kB         0 kB         0 kB         0 kB         0 kB         0 kB     oeminfo_nvme_server
+821           973(680 in SwapPss) kB   2139296 kB      1332 kB       280 kB         0 kB         0 kB         0 kB         0 kB         0 kB     bms_event       
+822         1604(1448 in SwapPss) kB   2156556 kB       192 kB       152 kB         0 kB         0 kB         0 kB         0 kB         0 kB     powerct         
+826         9338(6172 in SwapPss) kB   2329140 kB      8396 kB      3000 kB         0 kB         0 kB         0 kB         0 kB         0 kB     accessibility   
+827        20106(5712 in SwapPss) kB   2561564 kB     23536 kB     13872 kB         0 kB         0 kB         0 kB         0 kB         0 kB     audio_server    
+863         3089(1652 in SwapPss) kB   2178632 kB      6216 kB      1380 kB         0 kB         0 kB         0 kB         0 kB         0 kB     concurrent_task_service
+901         4698(1484 in SwapPss) kB   2182580 kB     11868 kB      2900 kB         0 kB         0 kB         0 kB         0 kB         0 kB     dlp_credential_service_sa
+904         2452(1944 in SwapPss) kB   2163964 kB       528 kB       508 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hdc_credential  
+954         5706(2364 in SwapPss) kB   2201704 kB     12068 kB      3032 kB         0 kB         0 kB         0 kB         0 kB         0 kB     huks_service    
+959            8360(0 in SwapPss) kB   6465048 kB     15664 kB      8100 kB         4 kB         0 kB         0 kB         0 kB         0 kB     memmgrservice   
+980           42823(0 in SwapPss) kB   2344784 kB     58972 kB     39960 kB         0 kB     22528 kB     22528 kB         0 kB         0 kB     multimodalinput 
+1056        2019(1212 in SwapPss) kB   2158404 kB      1240 kB       800 kB         0 kB         0 kB         0 kB         0 kB         0 kB     nfc_tag_service 
+1057        3957(2004 in SwapPss) kB   2177420 kB      6448 kB      1780 kB         0 kB         0 kB         0 kB         0 kB         0 kB     resource_schedule_executor
+1110      37479(11684 in SwapPss) kB   2490320 kB     53712 kB     22724 kB         0 kB         0 kB         0 kB         0 kB         0 kB     resource_schedule_service
+1137        3753(1772 in SwapPss) kB   2173028 kB      8584 kB      1836 kB         0 kB         0 kB         0 kB         0 kB         0 kB     wireless_hid_accessory_manager_ability
+1141      20160(12744 in SwapPss) kB   2271612 kB     11628 kB      7008 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hiaiserver      
+1147        1550(1112 in SwapPss) kB   2155712 kB       640 kB       432 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hinetmanager    
+1169        1811(1424 in SwapPss) kB   2163940 kB       448 kB       384 kB         0 kB         0 kB         0 kB         0 kB         0 kB     mhcserver       
+1171      45886(13076 in SwapPss) kB   2543052 kB     37288 kB     32344 kB         0 kB         0 kB         0 kB         0 kB         0 kB     CameraDaemon    
+1173        5403(2056 in SwapPss) kB   2190988 kB      7068 kB      3308 kB         0 kB         0 kB         0 kB         0 kB         0 kB     accesstoken_service
+1205       41926(5964 in SwapPss) kB   2380844 kB     55292 kB     34724 kB         0 kB         0 kB         0 kB         0 kB         0 kB     netmanager      
+1235       24089(9916 in SwapPss) kB   2392988 kB     29208 kB     12236 kB         0 kB         0 kB         0 kB         0 kB         0 kB     telephony       
+1237        4617(3760 in SwapPss) kB   2248464 kB      1344 kB       824 kB         0 kB         0 kB         0 kB         0 kB         0 kB     wallpaper_service
+1455        6651(2612 in SwapPss) kB   2195676 kB     13624 kB      3568 kB         0 kB         0 kB         0 kB         0 kB         0 kB     file_monitor_service
+1485        1681(1328 in SwapPss) kB   2159396 kB       564 kB       348 kB         0 kB         0 kB         0 kB         0 kB         0 kB     isulad          
+1491      17274(10736 in SwapPss) kB   2364604 kB     18280 kB      6064 kB         0 kB         0 kB         0 kB         0 kB         0 kB     msdp            
+1494       12933(5024 in SwapPss) kB   2304460 kB     21592 kB      6540 kB         0 kB         0 kB         0 kB         0 kB         0 kB     push_manager_service
+1570        5991(3796 in SwapPss) kB   2247876 kB      9820 kB      2020 kB         0 kB         0 kB         0 kB         0 kB         0 kB     time_service    
+1612          43971(0 in SwapPss) kB   2206112 kB     48416 kB     43864 kB         0 kB         0 kB         0 kB         0 kB         0 kB     aptouch_daemon  
+1613        1674(1280 in SwapPss) kB   2155848 kB       596 kB       388 kB         0 kB         0 kB         0 kB         0 kB         0 kB     secure_element_host
+1614        2742(1192 in SwapPss) kB   2161576 kB      4728 kB      1508 kB         0 kB         0 kB         0 kB         0 kB         0 kB     perfgenius_host 
+1615         1790(888 in SwapPss) kB   2157392 kB      4508 kB       852 kB         0 kB         0 kB         0 kB         0 kB         0 kB     battery_extra_host
+1618         1871(796 in SwapPss) kB   2155284 kB      4788 kB      1020 kB         0 kB         0 kB         0 kB         0 kB         0 kB     factory_host    
+1619        1666(1244 in SwapPss) kB   2155856 kB       624 kB       416 kB         0 kB         0 kB         0 kB         0 kB         0 kB     lcd_host        
+1620         2133(924 in SwapPss) kB   2158068 kB      5156 kB      1140 kB         0 kB         0 kB         0 kB         0 kB         0 kB     tp_host         
+1621        1630(1240 in SwapPss) kB   2156228 kB       592 kB       384 kB         0 kB         0 kB         0 kB         0 kB         0 kB     input_user_host 
+1627      16578(11528 in SwapPss) kB   2364104 kB     18516 kB      4248 kB         0 kB         0 kB         0 kB         0 kB         0 kB     task_manager_service
+1629        2151(1152 in SwapPss) kB   2161136 kB      4376 kB       960 kB         0 kB         0 kB         0 kB         0 kB         0 kB     user_auth_host  
+1633        1806(1112 in SwapPss) kB   2156676 kB      1404 kB       680 kB         0 kB         0 kB         0 kB         0 kB         0 kB     connected_tag_host
+1638        2104(1556 in SwapPss) kB   2166600 kB       872 kB       436 kB         0 kB         0 kB         0 kB         0 kB         0 kB     codec_host      
+1639         2739(960 in SwapPss) kB   2163312 kB      5508 kB      1640 kB         0 kB         0 kB         0 kB         0 kB         0 kB     wifi_host       
+1641       16041(8048 in SwapPss) kB   2320484 kB     25528 kB      6636 kB         0 kB         0 kB         0 kB         0 kB         0 kB     locationhub     
+1654        2569(1228 in SwapPss) kB   2162804 kB      4876 kB      1292 kB         0 kB         0 kB         0 kB         0 kB         0 kB     sensor_host     
+1659        3362(1564 in SwapPss) kB   2171352 kB      5092 kB      1728 kB         0 kB         0 kB         0 kB         0 kB         0 kB     riladapter_host 
+1661        2085(1108 in SwapPss) kB   2162092 kB      5036 kB       864 kB         0 kB         0 kB         0 kB         0 kB         0 kB     allocator_host  
+1664         1213(884 in SwapPss) kB   2141900 kB      2028 kB       280 kB         0 kB         0 kB         0 kB         0 kB         0 kB     chargelogcat    
+1670       13533(4532 in SwapPss) kB   2205308 kB     14576 kB      8628 kB         0 kB         0 kB         0 kB         0 kB         0 kB     composer_host   
+1672         2910(908 in SwapPss) kB   2160416 kB      3084 kB      1832 kB         0 kB         0 kB         0 kB         0 kB         0 kB     usb_host        
+1675         2054(924 in SwapPss) kB   2160724 kB      4592 kB      1080 kB         0 kB         0 kB         0 kB         0 kB         0 kB     blue_host       
+1679        8872(1512 in SwapPss) kB   2179400 kB      9420 kB      7248 kB         0 kB         0 kB         0 kB         0 kB         0 kB     audio_host      
+1683         1219(880 in SwapPss) kB   2141896 kB      1768 kB       292 kB         0 kB         0 kB         0 kB         0 kB         0 kB     sleeplogcat     
+1689        7894(2800 in SwapPss) kB   2216416 kB     15240 kB      4496 kB         0 kB         0 kB         0 kB         0 kB         0 kB     device_manager  
+1691        2989(1276 in SwapPss) kB   2168500 kB      5540 kB      1644 kB         0 kB         0 kB         0 kB         0 kB         0 kB     power_host      
+1694        1704(1308 in SwapPss) kB   2155844 kB       608 kB       388 kB         0 kB         0 kB         0 kB         0 kB         0 kB     off_find_host   
+1700         2188(952 in SwapPss) kB   2160752 kB      2020 kB      1212 kB         0 kB         0 kB         0 kB         0 kB         0 kB     nearlink_host   
+1705         1194(884 in SwapPss) kB   2141900 kB      1036 kB       268 kB         0 kB         0 kB         0 kB         0 kB         0 kB     inputlogcat     
+1719        2710(1264 in SwapPss) kB   2170620 kB      5268 kB      1376 kB         0 kB         0 kB         0 kB         0 kB         0 kB     fingerprint_auth_host
+1727         1061(620 in SwapPss) kB   2139284 kB      2236 kB       424 kB         0 kB         0 kB         0 kB         0 kB         0 kB     tlogcat         
+1728        4510(2316 in SwapPss) kB   2179528 kB      9172 kB      1880 kB         0 kB         0 kB         0 kB         0 kB         0 kB     comm_protocol_resource_manager
+1730         8990(700 in SwapPss) kB   2321980 kB     17936 kB      8012 kB         0 kB         0 kB         0 kB         0 kB         0 kB     virus_protection_service
+1732         1111(672 in SwapPss) kB   2150764 kB       988 kB       432 kB         0 kB         0 kB         0 kB         0 kB         0 kB     shs             
+1733        7511(3244 in SwapPss) kB   2206052 kB     12512 kB      3988 kB         0 kB         0 kB         0 kB         0 kB         0 kB     useriam         
+1738        3103(1764 in SwapPss) kB   2176952 kB      6392 kB      1284 kB         0 kB         0 kB         0 kB         0 kB         0 kB     ui_service      
+1753       17484(3728 in SwapPss) kB   2252036 kB     24028 kB     12816 kB         0 kB         0 kB         0 kB         0 kB         0 kB     softbus_server  
+1762        3858(1412 in SwapPss) kB   2175964 kB      8324 kB      2312 kB         0 kB         0 kB         0 kB         0 kB         0 kB     sensors         
+1768        9648(1316 in SwapPss) kB   2234888 kB     20440 kB      7648 kB         0 kB         0 kB         0 kB         0 kB         0 kB     security_guard  
+1771        4818(2488 in SwapPss) kB   2188520 kB      2940 kB      2224 kB         0 kB         0 kB         0 kB         0 kB         0 kB     sandbox_manager_service
+1776        2746(1504 in SwapPss) kB   2167540 kB      5248 kB      1196 kB         0 kB         0 kB         0 kB         0 kB         0 kB     pin_auth_host   
+1782         1385(676 in SwapPss) kB   2149876 kB       876 kB       708 kB         0 kB         0 kB         0 kB         0 kB         0 kB     isplogcat       
+1810        16511(864 in SwapPss) kB   2183380 kB     22560 kB     15180 kB         0 kB      9664 kB      9664 kB         0 kB         0 kB     av_codec_service
+1812        5763(2184 in SwapPss) kB   2191304 kB     11500 kB      3320 kB         0 kB         0 kB         0 kB         0 kB         0 kB     privacy_service 
+1841       11906(4288 in SwapPss) kB   2293092 kB     21320 kB      6668 kB         0 kB         0 kB         0 kB         0 kB         0 kB     powermgr        
+1842        4798(1220 in SwapPss) kB   2184568 kB      8488 kB      3412 kB         0 kB         0 kB         0 kB         0 kB         0 kB     netsysnative    
+1847          26291(0 in SwapPss) kB   2429664 kB     33124 kB     24504 kB         0 kB         0 kB         0 kB         0 kB         0 kB     media_service   
+1868         2618(748 in SwapPss) kB   2162212 kB      4028 kB      1848 kB         0 kB         0 kB         0 kB         0 kB         0 kB     media_monitor   
+1921        8803(6692 in SwapPss) kB   2287960 kB      8504 kB      1868 kB         0 kB         0 kB         0 kB         0 kB         0 kB     selection_service
+1923        9974(5124 in SwapPss) kB   2344312 kB     18216 kB      4108 kB         0 kB         0 kB         0 kB         0 kB         0 kB     inputmethod_service
+1924       11029(2280 in SwapPss) kB   2211016 kB     24472 kB      7736 kB         0 kB         0 kB         0 kB         0 kB         0 kB     huawei_id_svc   
+1925       19921(5984 in SwapPss) kB   2334124 kB     32004 kB     12816 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hianalytics     
+1955         352149(0 in SwapPss) kB   7050356 kB    384005 kB    335481 kB     27337 kB    112432 kB    112432 kB         0 kB         0 kB     render_service  
+1975        3799(1620 in SwapPss) kB   2175916 kB      8176 kB      1924 kB         0 kB         0 kB         0 kB         0 kB         0 kB     fusion_connectivity_manager_ext
+1976          94493(0 in SwapPss) kB   2681248 kB    127808 kB     88784 kB         0 kB         0 kB         0 kB         0 kB         0 kB     foundation      
+1980      12904(10120 in SwapPss) kB   2335472 kB      9896 kB      2596 kB         0 kB         0 kB         0 kB         0 kB         0 kB     file_guard      
+1985        3498(2388 in SwapPss) kB   2176564 kB      3900 kB      1084 kB         0 kB         0 kB         0 kB         0 kB         0 kB     drm_service     
+1987       16134(2276 in SwapPss) kB   2279904 kB     31544 kB     12464 kB         0 kB         0 kB         0 kB         0 kB         0 kB     distributeddata 
+1989        4238(1628 in SwapPss) kB   2179104 kB      8956 kB      2452 kB         0 kB         0 kB         0 kB         0 kB         0 kB     display_engine_service
+1990         1005(680 in SwapPss) kB   2139320 kB      1712 kB       316 kB         0 kB         0 kB         0 kB         0 kB         0 kB     data_monitor_service
+1992        5689(2468 in SwapPss) kB   2195940 kB      8508 kB      2976 kB         0 kB         0 kB         0 kB         0 kB         0 kB     code_protect    
+2010        7289(4304 in SwapPss) kB   2232688 kB      9996 kB      2788 kB         0 kB         0 kB         0 kB         0 kB         0 kB     cloudfiledaemon 
+2030        4391(1124 in SwapPss) kB   2174196 kB      8252 kB      3008 kB         0 kB         0 kB         0 kB         0 kB         0 kB     client_cloud_cache_service
+2038       15223(7380 in SwapPss) kB   2312488 kB     14372 kB      7544 kB         0 kB         0 kB         0 kB         0 kB         0 kB     camera_service  
+2041       11394(5164 in SwapPss) kB   2322368 kB     19388 kB      5428 kB         0 kB         0 kB         0 kB         0 kB         0 kB     batterycare_service
+2042        8844(4352 in SwapPss) kB   2276340 kB     10112 kB      4400 kB         0 kB         0 kB         0 kB         0 kB         0 kB     av_session      
+2046        5140(3068 in SwapPss) kB   2193864 kB      6204 kB      1928 kB         0 kB         0 kB         0 kB         0 kB         0 kB     aps_manager     
+2082        8007(2224 in SwapPss) kB   2193160 kB     17064 kB      4984 kB         0 kB         0 kB         0 kB         0 kB         0 kB     accountmgr      
+2087       33773(9384 in SwapPss) kB   2437148 kB     39384 kB     22804 kB         0 kB         0 kB         0 kB         0 kB         0 kB     CollaborationFwk
+2102        2209(1068 in SwapPss) kB   2164352 kB      5972 kB      1088 kB         0 kB         0 kB         0 kB         0 kB         0 kB     thp_extra       
+2694         2073(988 in SwapPss) kB   2161352 kB      1364 kB      1076 kB         0 kB         0 kB         0 kB         0 kB         0 kB     location_host   
+3024         2732(124 in SwapPss) kB   2166488 kB      3332 kB      2540 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hignss_110x_ohos
+3026          1212(16 in SwapPss) kB   2150188 kB      3108 kB      1168 kB         0 kB         0 kB         0 kB         0 kB         0 kB     oam_hisi        
+3069       11217(1856 in SwapPss) kB   2219880 kB     15068 kB      8752 kB         0 kB         0 kB         0 kB         0 kB         0 kB     deviceprofile   
+3697        16981(668 in SwapPss) kB   2333716 kB     29872 kB     15236 kB         0 kB         0 kB         0 kB         0 kB         0 kB     wifi_manager_service
+3890          23847(0 in SwapPss) kB   6352420 kB    119532 kB     20620 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hms.pafservice
+4147         7455(152 in SwapPss) kB   2189860 kB     18872 kB      6548 kB         0 kB         0 kB         0 kB         0 kB         0 kB     asset_service   
+4241          23733(0 in SwapPss) kB   6359460 kB    123168 kB     20080 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hmos.location
+4255          57537(0 in SwapPss) kB   6461780 kB    171760 kB     51920 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.xgate.mdm
+4263          37156(0 in SwapPss) kB   6409300 kB    138428 kB     32516 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hmsapp.samplemanagement
+4388          1836(32 in SwapPss) kB   2156636 kB      4940 kB      1756 kB         0 kB         0 kB         0 kB         0 kB         0 kB     deviceinfoservice
+5038       19934(1780 in SwapPss) kB   2352512 kB     42140 kB     15720 kB         0 kB         0 kB         0 kB         0 kB         0 kB     edm             
+5094          26323(0 in SwapPss) kB   6356504 kB    118152 kB     22632 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hms.pushservice
+5170          10929(0 in SwapPss) kB   6340520 kB    101656 kB      7584 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.xgate.mdm:enterpriseAdmin
+5199          4662(16 in SwapPss) kB   2184804 kB     14360 kB      4308 kB         0 kB         0 kB         0 kB         0 kB         0 kB     cert_manager_service
+6511          16407(0 in SwapPss) kB   2298276 kB     66224 kB     10664 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hidumper_service
+6864         545016(0 in SwapPss) kB  11571592 kB    697311 kB    519003 kB     36583 kB      3704 kB      3704 kB         0 kB         0 kB     com.ohos.sceneboard
+6937           5303(0 in SwapPss) kB   2190832 kB     21640 kB      4292 kB         0 kB         0 kB         0 kB         0 kB         0 kB     el5_filekey_manager
+6949           8523(0 in SwapPss) kB   2266148 kB     36968 kB      6472 kB         0 kB         0 kB         0 kB         0 kB         0 kB     space_mgr_service
+6982       23903(5616 in SwapPss) kB   6384976 kB    100408 kB     15160 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hmos.aidispatchservice
+6988         106193(0 in SwapPss) kB   6499316 kB    254004 kB     92244 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.ohos.FusionSearch:search
+7177       59714(6456 in SwapPss) kB   6475556 kB    173124 kB     46476 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hmos.aidataservice
+7220           3791(0 in SwapPss) kB   2175832 kB     18756 kB      3168 kB         0 kB         0 kB         0 kB         0 kB         0 kB     file_system_service
+7230          25455(0 in SwapPss) kB   2343960 kB     93340 kB     15844 kB         0 kB         0 kB         0 kB         0 kB         0 kB     file_manager_service
+7233          51524(0 in SwapPss) kB   2458868 kB    130112 kB     38984 kB         0 kB         0 kB         0 kB         0 kB         0 kB     index_insert_service
+7262       27466(2168 in SwapPss) kB   6403692 kB    122848 kB     21428 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.ohos.medialibrary.medialibrarydata
+7340           5550(0 in SwapPss) kB   6321188 kB     94768 kB       396 kB         0 kB         0 kB         0 kB         0 kB         0 kB     apppool         
+7863           1658(0 in SwapPss) kB   2154816 kB      8292 kB      1488 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hidumper        
+8069         7556(352 in SwapPss) kB   2258776 kB     14156 kB      6964 kB         0 kB         0 kB         0 kB         0 kB         0 kB     pasteboard_service
+8400          43618(0 in SwapPss) kB   6364900 kB    149412 kB     35064 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.ohos.sceneboard:EngineServiceAbility:1
+8637        9998(1176 in SwapPss) kB   2288160 kB      9968 kB      8772 kB         0 kB         0 kB         0 kB         0 kB         0 kB     appgallery_service
+8784         5020(982 in SwapPss) kB   2380084 kB     17000 kB      1076 kB         0 kB         0 kB         0 kB         0 kB         0 kB     nwebspawn       
+12105          8816(0 in SwapPss) kB   2260904 kB     23912 kB      7932 kB         0 kB         0 kB         0 kB         0 kB         0 kB     enterprise_account_auth_service
+12373        122403(0 in SwapPss) kB  40269040 kB    271616 kB     97768 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.hismall
+12568     112750(8768 in SwapPss) kB   7161500 kB    251980 kB     88120 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.mbs.ismp.ep.epc.oh.ui
+12599         20044(0 in SwapPss) kB   2344172 kB     40448 kB     18560 kB         0 kB         0 kB         0 kB         0 kB         0 kB     gameservice_server
+12926       56076(488 in SwapPss) kB  40465176 kB    106704 kB     33620 kB      3668 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.hismall:gpu
+13001          2751(0 in SwapPss) kB   2172260 kB      4372 kB      2688 kB         0 kB         0 kB         0 kB         0 kB         0 kB     gamecontroller_server
+14005     45752(24688 in SwapPss) kB   6433284 kB    105908 kB     17476 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.ohos.contactsdataability
+14165     19800(13144 in SwapPss) kB   6357528 kB     93116 kB      3304 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hmos.numberidentity
+14546         23954(0 in SwapPss) kB   6440080 kB    119308 kB     19092 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.hisec.endpoint
+14555   113597(106252 in SwapPss) kB   6765968 kB    102664 kB      4076 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.xgate.esm:dsc
+14568     19596(11724 in SwapPss) kB   6369876 kB    104104 kB      4180 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.xgate.esm:sso
+14573    141253(41508 in SwapPss) kB  40434344 kB    234968 kB     80600 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.xgate
+14746         41262(0 in SwapPss) kB   6550192 kB    136684 kB     36304 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.hisec.endpoint:EDRMaster0
+14751         37565(0 in SwapPss) kB   6480768 kB    130924 kB     32888 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.hisec.endpoint:EDRManager1
+14767        110044(0 in SwapPss) kB   6595332 kB    207596 kB    105096 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.hisec.endpoint:EDRScanner2
+14818     88950(32828 in SwapPss) kB  40551416 kB     84812 kB     48516 kB     31904 kB      7728 kB      7728 kB         0 kB         0 kB     com.huawei.his.xgate:gpu
+15066     35564(25154 in SwapPss) kB 139565268 kB     37776 kB      2444 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.xgate:render
+15068     94923(24777 in SwapPss) kB 139614256 kB    105896 kB     56632 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.xgate:render
+15415          6627(0 in SwapPss) kB   2203908 kB     12380 kB      6184 kB         0 kB         0 kB         0 kB         0 kB         0 kB     security_collector
+18837      40966(3040 in SwapPss) kB   6374792 kB    140524 kB     32820 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hmos.asde:workScheduler
+20819         12838(0 in SwapPss) kB   2329072 kB     26396 kB     11840 kB         0 kB         0 kB         0 kB         0 kB         0 kB     download_server 
+28896      63727(8564 in SwapPss) kB   6422124 kB    159864 kB     50372 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.xgate.esm
+29619    203057(56584 in SwapPss) kB   6900220 kB    247196 kB    141224 kB         0 kB         0 kB         0 kB         0 kB         0 kB     tech.sanway.ecoengine.kds
+29928         36039(0 in SwapPss) kB   6376856 kB    136124 kB     31208 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hmos.ouc:workScheduler
+33149         23510(0 in SwapPss) kB   6360720 kB    107976 kB     20560 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.ohos.notificationdialog:EnableNotificationDialog:60
+37101         17304(0 in SwapPss) kB   2334140 kB     40168 kB     15244 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hwf_service     
+38512     18569(11048 in SwapPss) kB   2369024 kB     28780 kB      5536 kB         0 kB         0 kB         0 kB         0 kB         0 kB     vm_manager      
+40874        196961(0 in SwapPss) kB   6699308 kB    330460 kB    183212 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hmos.inputmethod:inputMethod
+43609         16988(0 in SwapPss) kB   2225644 kB     31024 kB     15988 kB         0 kB         0 kB         0 kB         0 kB         0 kB     bluetooth_service
+44106          1870(0 in SwapPss) kB   2157656 kB      5852 kB      1784 kB         0 kB         0 kB         0 kB         0 kB         0 kB     contexthub_ble_host
+44132          6219(0 in SwapPss) kB   2168004 kB     11644 kB      6000 kB         0 kB         0 kB         0 kB         0 kB         0 kB     wpa_host        
+44305         11823(0 in SwapPss) kB   2201788 kB     22328 kB     11160 kB         0 kB         0 kB         0 kB         0 kB         0 kB     nearlink_service
+48498      27284(4448 in SwapPss) kB   6414480 kB    123656 kB     18844 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.ohos.FusionSearch
+52531         10478(0 in SwapPss) kB   2269556 kB     22324 kB      9304 kB         0 kB         0 kB         0 kB         0 kB         0 kB     usb_service     
+52955          4592(0 in SwapPss) kB   2172836 kB      9796 kB      4484 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hdcd            
+53204          1400(0 in SwapPss) kB   2153624 kB      4144 kB      1360 kB         0 kB         0 kB         0 kB         0 kB         0 kB     bms_behavior    
+56595         15433(0 in SwapPss) kB   2322696 kB     30736 kB     13624 kB         0 kB         0 kB         0 kB         0 kB         0 kB     atomicservice_ecological_rule_manager
+58505      32493(6728 in SwapPss) kB   6378616 kB    116868 kB     21736 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hms.adsservice
+59068         42899(0 in SwapPss) kB   6366260 kB    143796 kB     38488 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hmos.hsdr:workScheduler
+
+Total Memory Usage by Size:
+PID        Total Pss(xxx in SwapPss)    Total Vss    Total Rss    Total Uss           GL        Graph          Dma      PurgSum      PurgPin     Name            
+6864         545016(0 in SwapPss) kB  11571592 kB    697311 kB    519003 kB     36583 kB      3704 kB      3704 kB         0 kB         0 kB     com.ohos.sceneboard
+1955         352149(0 in SwapPss) kB   7050356 kB    384005 kB    335481 kB     27337 kB    112432 kB    112432 kB         0 kB         0 kB     render_service  
+2            207443(0 in SwapPss) kB  39404256 kB    210916 kB    204564 kB         0 kB         0 kB         0 kB         0 kB         0 kB     sysmgr-main     
+29619    203057(56584 in SwapPss) kB   6900220 kB    247196 kB    141224 kB         0 kB         0 kB         0 kB         0 kB         0 kB     tech.sanway.ecoengine.kds
+40874        196961(0 in SwapPss) kB   6699308 kB    330460 kB    183212 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hmos.inputmethod:inputMethod
+14573    141253(41508 in SwapPss) kB  40434344 kB    234968 kB     80600 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.xgate
+12373        122403(0 in SwapPss) kB  40269040 kB    271616 kB     97768 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.hismall
+14555   113597(106252 in SwapPss) kB   6765968 kB    102664 kB      4076 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.xgate.esm:dsc
+12568     112750(8768 in SwapPss) kB   7161500 kB    251980 kB     88120 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.mbs.ismp.ep.epc.oh.ui
+14767        110044(0 in SwapPss) kB   6595332 kB    207596 kB    105096 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.hisec.endpoint:EDRScanner2
+6988         106193(0 in SwapPss) kB   6499316 kB    254004 kB     92244 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.ohos.FusionSearch:search
+69           105066(0 in SwapPss) kB  38757360 kB    110592 kB    101412 kB         0 kB         0 kB         0 kB         0 kB         0 kB     devhost.elf     
+15068     94923(24777 in SwapPss) kB 139614256 kB    105896 kB     56632 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.xgate:render
+1976          94493(0 in SwapPss) kB   2681248 kB    127808 kB     88784 kB         0 kB         0 kB         0 kB         0 kB         0 kB     foundation      
+14818     88950(32828 in SwapPss) kB  40551416 kB     84812 kB     48516 kB     31904 kB      7728 kB      7728 kB         0 kB         0 kB     com.huawei.his.xgate:gpu
+28896      63727(8564 in SwapPss) kB   6422124 kB    159864 kB     50372 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.xgate.esm
+7177       59714(6456 in SwapPss) kB   6475556 kB    173124 kB     46476 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hmos.aidataservice
+4255          57537(0 in SwapPss) kB   6461780 kB    171760 kB     51920 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.xgate.mdm
+12926       56076(488 in SwapPss) kB  40465176 kB    106704 kB     33620 kB      3668 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.hismall:gpu
+7233          51524(0 in SwapPss) kB   2458868 kB    130112 kB     38984 kB         0 kB         0 kB         0 kB         0 kB         0 kB     index_insert_service
+670        48216(4840 in SwapPss) kB   2535736 kB     77604 kB     40128 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hiview          
+1171      45886(13076 in SwapPss) kB   2543052 kB     37288 kB     32344 kB         0 kB         0 kB         0 kB         0 kB         0 kB     CameraDaemon    
+14005     45752(24688 in SwapPss) kB   6433284 kB    105908 kB     17476 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.ohos.contactsdataability
+1612          43971(0 in SwapPss) kB   2206112 kB     48416 kB     43864 kB         0 kB         0 kB         0 kB         0 kB         0 kB     aptouch_daemon  
+8400          43618(0 in SwapPss) kB   6364900 kB    149412 kB     35064 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.ohos.sceneboard:EngineServiceAbility:1
+59068         42899(0 in SwapPss) kB   6366260 kB    143796 kB     38488 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hmos.hsdr:workScheduler
+980           42823(0 in SwapPss) kB   2344784 kB     58972 kB     39960 kB         0 kB     22528 kB     22528 kB         0 kB         0 kB     multimodalinput 
+1205       41926(5964 in SwapPss) kB   2380844 kB     55292 kB     34724 kB         0 kB         0 kB         0 kB         0 kB         0 kB     netmanager      
+14746         41262(0 in SwapPss) kB   6550192 kB    136684 kB     36304 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.hisec.endpoint:EDRMaster0
+18837      40966(3040 in SwapPss) kB   6374792 kB    140524 kB     32820 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hmos.asde:workScheduler
+14751         37565(0 in SwapPss) kB   6480768 kB    130924 kB     32888 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.hisec.endpoint:EDRManager1
+1110      37479(11684 in SwapPss) kB   2490320 kB     53712 kB     22724 kB         0 kB         0 kB         0 kB         0 kB         0 kB     resource_schedule_service
+4263          37156(0 in SwapPss) kB   6409300 kB    138428 kB     32516 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hmsapp.samplemanagement
+29928         36039(0 in SwapPss) kB   6376856 kB    136124 kB     31208 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hmos.ouc:workScheduler
+15066     35564(25154 in SwapPss) kB 139565268 kB     37776 kB      2444 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.xgate:render
+2087       33773(9384 in SwapPss) kB   2437148 kB     39384 kB     22804 kB         0 kB         0 kB         0 kB         0 kB         0 kB     CollaborationFwk
+58505      32493(6728 in SwapPss) kB   6378616 kB    116868 kB     21736 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hms.adsservice
+7262       27466(2168 in SwapPss) kB   6403692 kB    122848 kB     21428 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.ohos.medialibrary.medialibrarydata
+48498      27284(4448 in SwapPss) kB   6414480 kB    123656 kB     18844 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.ohos.FusionSearch
+5094          26323(0 in SwapPss) kB   6356504 kB    118152 kB     22632 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hms.pushservice
+1847          26291(0 in SwapPss) kB   2429664 kB     33124 kB     24504 kB         0 kB         0 kB         0 kB         0 kB         0 kB     media_service   
+7230          25455(0 in SwapPss) kB   2343960 kB     93340 kB     15844 kB         0 kB         0 kB         0 kB         0 kB         0 kB     file_manager_service
+1235       24089(9916 in SwapPss) kB   2392988 kB     29208 kB     12236 kB         0 kB         0 kB         0 kB         0 kB         0 kB     telephony       
+14546         23954(0 in SwapPss) kB   6440080 kB    119308 kB     19092 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.hisec.endpoint
+6982       23903(5616 in SwapPss) kB   6384976 kB    100408 kB     15160 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hmos.aidispatchservice
+3890          23847(0 in SwapPss) kB   6352420 kB    119532 kB     20620 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hms.pafservice
+4241          23733(0 in SwapPss) kB   6359460 kB    123168 kB     20080 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hmos.location
+33149         23510(0 in SwapPss) kB   6360720 kB    107976 kB     20560 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.ohos.notificationdialog:EnableNotificationDialog:60
+1141      20160(12744 in SwapPss) kB   2271612 kB     11628 kB      7008 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hiaiserver      
+827        20106(5712 in SwapPss) kB   2561564 kB     23536 kB     13872 kB         0 kB         0 kB         0 kB         0 kB         0 kB     audio_server    
+12599         20044(0 in SwapPss) kB   2344172 kB     40448 kB     18560 kB         0 kB         0 kB         0 kB         0 kB         0 kB     gameservice_server
+5038       19934(1780 in SwapPss) kB   2352512 kB     42140 kB     15720 kB         0 kB         0 kB         0 kB         0 kB         0 kB     edm             
+1925       19921(5984 in SwapPss) kB   2334124 kB     32004 kB     12816 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hianalytics     
+14165     19800(13144 in SwapPss) kB   6357528 kB     93116 kB      3304 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.hmos.numberidentity
+14568     19596(11724 in SwapPss) kB   6369876 kB    104104 kB      4180 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.xgate.esm:sso
+38512     18569(11048 in SwapPss) kB   2369024 kB     28780 kB      5536 kB         0 kB         0 kB         0 kB         0 kB         0 kB     vm_manager      
+1753       17484(3728 in SwapPss) kB   2252036 kB     24028 kB     12816 kB         0 kB         0 kB         0 kB         0 kB         0 kB     softbus_server  
+37101         17304(0 in SwapPss) kB   2334140 kB     40168 kB     15244 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hwf_service     
+1491      17274(10736 in SwapPss) kB   2364604 kB     18280 kB      6064 kB         0 kB         0 kB         0 kB         0 kB         0 kB     msdp            
+43609         16988(0 in SwapPss) kB   2225644 kB     31024 kB     15988 kB         0 kB         0 kB         0 kB         0 kB         0 kB     bluetooth_service
+3697        16981(668 in SwapPss) kB   2333716 kB     29872 kB     15236 kB         0 kB         0 kB         0 kB         0 kB         0 kB     wifi_manager_service
+1627      16578(11528 in SwapPss) kB   2364104 kB     18516 kB      4248 kB         0 kB         0 kB         0 kB         0 kB         0 kB     task_manager_service
+1810        16511(864 in SwapPss) kB   2183380 kB     22560 kB     15180 kB         0 kB      9664 kB      9664 kB         0 kB         0 kB     av_codec_service
+6511          16407(0 in SwapPss) kB   2298276 kB     66224 kB     10664 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hidumper_service
+1987       16134(2276 in SwapPss) kB   2279904 kB     31544 kB     12464 kB         0 kB         0 kB         0 kB         0 kB         0 kB     distributeddata 
+1641       16041(8048 in SwapPss) kB   2320484 kB     25528 kB      6636 kB         0 kB         0 kB         0 kB         0 kB         0 kB     locationhub     
+56595         15433(0 in SwapPss) kB   2322696 kB     30736 kB     13624 kB         0 kB         0 kB         0 kB         0 kB         0 kB     atomicservice_ecological_rule_manager
+2038       15223(7380 in SwapPss) kB   2312488 kB     14372 kB      7544 kB         0 kB         0 kB         0 kB         0 kB         0 kB     camera_service  
+1670       13533(4532 in SwapPss) kB   2205308 kB     14576 kB      8628 kB         0 kB         0 kB         0 kB         0 kB         0 kB     composer_host   
+1494       12933(5024 in SwapPss) kB   2304460 kB     21592 kB      6540 kB         0 kB         0 kB         0 kB         0 kB         0 kB     push_manager_service
+1980      12904(10120 in SwapPss) kB   2335472 kB      9896 kB      2596 kB         0 kB         0 kB         0 kB         0 kB         0 kB     file_guard      
+20819         12838(0 in SwapPss) kB   2329072 kB     26396 kB     11840 kB         0 kB         0 kB         0 kB         0 kB         0 kB     download_server 
+1841       11906(4288 in SwapPss) kB   2293092 kB     21320 kB      6668 kB         0 kB         0 kB         0 kB         0 kB         0 kB     powermgr        
+44305         11823(0 in SwapPss) kB   2201788 kB     22328 kB     11160 kB         0 kB         0 kB         0 kB         0 kB         0 kB     nearlink_service
+2041       11394(5164 in SwapPss) kB   2322368 kB     19388 kB      5428 kB         0 kB         0 kB         0 kB         0 kB         0 kB     batterycare_service
+3069       11217(1856 in SwapPss) kB   2219880 kB     15068 kB      8752 kB         0 kB         0 kB         0 kB         0 kB         0 kB     deviceprofile   
+1924       11029(2280 in SwapPss) kB   2211016 kB     24472 kB      7736 kB         0 kB         0 kB         0 kB         0 kB         0 kB     huawei_id_svc   
+5170          10929(0 in SwapPss) kB   6340520 kB    101656 kB      7584 kB         0 kB         0 kB         0 kB         0 kB         0 kB     com.huawei.his.xgate.mdm:enterpriseAdmin
+52531         10478(0 in SwapPss) kB   2269556 kB     22324 kB      9304 kB         0 kB         0 kB         0 kB         0 kB         0 kB     usb_service     
+8637        9998(1176 in SwapPss) kB   2288160 kB      9968 kB      8772 kB         0 kB         0 kB         0 kB         0 kB         0 kB     appgallery_service
+1923        9974(5124 in SwapPss) kB   2344312 kB     18216 kB      4108 kB         0 kB         0 kB         0 kB         0 kB         0 kB     inputmethod_service
+1768        9648(1316 in SwapPss) kB   2234888 kB     20440 kB      7648 kB         0 kB         0 kB         0 kB         0 kB         0 kB     security_guard  
+826         9338(6172 in SwapPss) kB   2329140 kB      8396 kB      3000 kB         0 kB         0 kB         0 kB         0 kB         0 kB     accessibility   
+1730         8990(700 in SwapPss) kB   2321980 kB     17936 kB      8012 kB         0 kB         0 kB         0 kB         0 kB         0 kB     virus_protection_service
+1679        8872(1512 in SwapPss) kB   2179400 kB      9420 kB      7248 kB         0 kB         0 kB         0 kB         0 kB         0 kB     audio_host      
+2042        8844(4352 in SwapPss) kB   2276340 kB     10112 kB      4400 kB         0 kB         0 kB         0 kB         0 kB         0 kB     av_session      
+12105          8816(0 in SwapPss) kB   2260904 kB     23912 kB      7932 kB         0 kB         0 kB         0 kB         0 kB         0 kB     enterprise_account_auth_service
+1921        8803(6692 in SwapPss) kB   2287960 kB      8504 kB      1868 kB         0 kB         0 kB         0 kB         0 kB         0 kB     selection_service
+6949           8523(0 in SwapPss) kB   2266148 kB     36968 kB      6472 kB         0 kB         0 kB         0 kB         0 kB         0 kB     space_mgr_service
+65             8462(0 in SwapPss) kB   2156088 kB     11864 kB      6852 kB         0 kB         0 kB         0 kB         0 kB         0 kB     devmgr.elf      
+959            8360(0 in SwapPss) kB   6465048 kB     15664 kB      8100 kB         4 kB         0 kB         0 kB         0 kB         0 kB     memmgrservice   
+2082        8007(2224 in SwapPss) kB   2193160 kB     17064 kB      4984 kB         0 kB         0 kB         0 kB         0 kB         0 kB     accountmgr      
+1689        7894(2800 in SwapPss) kB   2216416 kB     15240 kB      4496 kB         0 kB         0 kB         0 kB         0 kB         0 kB     device_manager  
+8069         7556(352 in SwapPss) kB   2258776 kB     14156 kB      6964 kB         0 kB         0 kB         0 kB         0 kB         0 kB     pasteboard_service
+1733        7511(3244 in SwapPss) kB   2206052 kB     12512 kB      3988 kB         0 kB         0 kB         0 kB         0 kB         0 kB     useriam         
+4147         7455(152 in SwapPss) kB   2189860 kB     18872 kB      6548 kB         0 kB         0 kB         0 kB         0 kB         0 kB     asset_service   
+663         7433(2956 in SwapPss) kB   2196304 kB     12948 kB      4056 kB         0 kB         0 kB         0 kB         0 kB         0 kB     storage_daemon  
+2010        7289(4304 in SwapPss) kB   2232688 kB      9996 kB      2788 kB         0 kB         0 kB         0 kB         0 kB         0 kB     cloudfiledaemon 
+1455        6651(2612 in SwapPss) kB   2195676 kB     13624 kB      3568 kB         0 kB         0 kB         0 kB         0 kB         0 kB     file_monitor_service
+15415          6627(0 in SwapPss) kB   2203908 kB     12380 kB      6184 kB         0 kB         0 kB         0 kB         0 kB         0 kB     security_collector
+44132          6219(0 in SwapPss) kB   2168004 kB     11644 kB      6000 kB         0 kB         0 kB         0 kB         0 kB         0 kB     wpa_host        
+664            6171(0 in SwapPss) kB   2189592 kB     13532 kB      5988 kB         0 kB         0 kB         0 kB         0 kB         0 kB     samgr           
+1570        5991(3796 in SwapPss) kB   2247876 kB      9820 kB      2020 kB         0 kB         0 kB         0 kB         0 kB         0 kB     time_service    
+1812        5763(2184 in SwapPss) kB   2191304 kB     11500 kB      3320 kB         0 kB         0 kB         0 kB         0 kB         0 kB     privacy_service 
+954         5706(2364 in SwapPss) kB   2201704 kB     12068 kB      3032 kB         0 kB         0 kB         0 kB         0 kB         0 kB     huks_service    
+1992        5689(2468 in SwapPss) kB   2195940 kB      8508 kB      2976 kB         0 kB         0 kB         0 kB         0 kB         0 kB     code_protect    
+632          5608(956 in SwapPss) kB   2174484 kB      8900 kB      4580 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hilogd          
+673            5598(0 in SwapPss) kB   6321188 kB     95968 kB       396 kB         0 kB         0 kB         0 kB         0 kB         0 kB     appspawn        
+7340           5550(0 in SwapPss) kB   6321188 kB     94768 kB       396 kB         0 kB         0 kB         0 kB         0 kB         0 kB     apppool         
+1173        5403(2056 in SwapPss) kB   2190988 kB      7068 kB      3308 kB         0 kB         0 kB         0 kB         0 kB         0 kB     accesstoken_service
+6937           5303(0 in SwapPss) kB   2190832 kB     21640 kB      4292 kB         0 kB         0 kB         0 kB         0 kB         0 kB     el5_filekey_manager
+1           5221(1548 in SwapPss) kB   2168308 kB      6956 kB      3320 kB         0 kB         0 kB         0 kB         0 kB         0 kB     init            
+2046        5140(3068 in SwapPss) kB   2193864 kB      6204 kB      1928 kB         0 kB         0 kB         0 kB         0 kB         0 kB     aps_manager     
+8784         5020(982 in SwapPss) kB   2380084 kB     17000 kB      1076 kB         0 kB         0 kB         0 kB         0 kB         0 kB     nwebspawn       
+1771        4818(2488 in SwapPss) kB   2188520 kB      2940 kB      2224 kB         0 kB         0 kB         0 kB         0 kB         0 kB     sandbox_manager_service
+1842        4798(1220 in SwapPss) kB   2184568 kB      8488 kB      3412 kB         0 kB         0 kB         0 kB         0 kB         0 kB     netsysnative    
+901         4698(1484 in SwapPss) kB   2182580 kB     11868 kB      2900 kB         0 kB         0 kB         0 kB         0 kB         0 kB     dlp_credential_service_sa
+5199          4662(16 in SwapPss) kB   2184804 kB     14360 kB      4308 kB         0 kB         0 kB         0 kB         0 kB         0 kB     cert_manager_service
+1237        4617(3760 in SwapPss) kB   2248464 kB      1344 kB       824 kB         0 kB         0 kB         0 kB         0 kB         0 kB     wallpaper_service
+52955          4592(0 in SwapPss) kB   2172836 kB      9796 kB      4484 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hdcd            
+1728        4510(2316 in SwapPss) kB   2179528 kB      9172 kB      1880 kB         0 kB         0 kB         0 kB         0 kB         0 kB     comm_protocol_resource_manager
+662         4449(1640 in SwapPss) kB   2189180 kB     11100 kB      2500 kB         0 kB         0 kB         0 kB         0 kB         0 kB     storage_manager 
+2030        4391(1124 in SwapPss) kB   2174196 kB      8252 kB      3008 kB         0 kB         0 kB         0 kB         0 kB         0 kB     client_cloud_cache_service
+1989        4238(1628 in SwapPss) kB   2179104 kB      8956 kB      2452 kB         0 kB         0 kB         0 kB         0 kB         0 kB     display_engine_service
+1057        3957(2004 in SwapPss) kB   2177420 kB      6448 kB      1780 kB         0 kB         0 kB         0 kB         0 kB         0 kB     resource_schedule_executor
+1762        3858(1412 in SwapPss) kB   2175964 kB      8324 kB      2312 kB         0 kB         0 kB         0 kB         0 kB         0 kB     sensors         
+1975        3799(1620 in SwapPss) kB   2175916 kB      8176 kB      1924 kB         0 kB         0 kB         0 kB         0 kB         0 kB     fusion_connectivity_manager_ext
+7220           3791(0 in SwapPss) kB   2175832 kB     18756 kB      3168 kB         0 kB         0 kB         0 kB         0 kB         0 kB     file_system_service
+1137        3753(1772 in SwapPss) kB   2173028 kB      8584 kB      1836 kB         0 kB         0 kB         0 kB         0 kB         0 kB     wireless_hid_accessory_manager_ability
+1985        3498(2388 in SwapPss) kB   2176564 kB      3900 kB      1084 kB         0 kB         0 kB         0 kB         0 kB         0 kB     drm_service     
+1659        3362(1564 in SwapPss) kB   2171352 kB      5092 kB      1728 kB         0 kB         0 kB         0 kB         0 kB         0 kB     riladapter_host 
+683         3286(1888 in SwapPss) kB   2177360 kB      6264 kB      1292 kB         0 kB         0 kB         0 kB         0 kB         0 kB     cadaemon        
+1738        3103(1764 in SwapPss) kB   2176952 kB      6392 kB      1284 kB         0 kB         0 kB         0 kB         0 kB         0 kB     ui_service      
+863         3089(1652 in SwapPss) kB   2178632 kB      6216 kB      1380 kB         0 kB         0 kB         0 kB         0 kB         0 kB     concurrent_task_service
+1691        2989(1276 in SwapPss) kB   2168500 kB      5540 kB      1644 kB         0 kB         0 kB         0 kB         0 kB         0 kB     power_host      
+1672         2910(908 in SwapPss) kB   2160416 kB      3084 kB      1832 kB         0 kB         0 kB         0 kB         0 kB         0 kB     usb_host        
+13001          2751(0 in SwapPss) kB   2172260 kB      4372 kB      2688 kB         0 kB         0 kB         0 kB         0 kB         0 kB     gamecontroller_server
+1776        2746(1504 in SwapPss) kB   2167540 kB      5248 kB      1196 kB         0 kB         0 kB         0 kB         0 kB         0 kB     pin_auth_host   
+1614        2742(1192 in SwapPss) kB   2161576 kB      4728 kB      1508 kB         0 kB         0 kB         0 kB         0 kB         0 kB     perfgenius_host 
+1639         2739(960 in SwapPss) kB   2163312 kB      5508 kB      1640 kB         0 kB         0 kB         0 kB         0 kB         0 kB     wifi_host       
+3024         2732(124 in SwapPss) kB   2166488 kB      3332 kB      2540 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hignss_110x_ohos
+1719        2710(1264 in SwapPss) kB   2170620 kB      5268 kB      1376 kB         0 kB         0 kB         0 kB         0 kB         0 kB     fingerprint_auth_host
+1868         2618(748 in SwapPss) kB   2162212 kB      4028 kB      1848 kB         0 kB         0 kB         0 kB         0 kB         0 kB     media_monitor   
+1654        2569(1228 in SwapPss) kB   2162804 kB      4876 kB      1292 kB         0 kB         0 kB         0 kB         0 kB         0 kB     sensor_host     
+904         2452(1944 in SwapPss) kB   2163964 kB       528 kB       508 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hdc_credential  
+665         2375(1048 in SwapPss) kB   2172272 kB      5232 kB      1028 kB         0 kB         0 kB         0 kB         0 kB         0 kB     param_watcher   
+524            2271(0 in SwapPss) kB   2142668 kB      3900 kB      1596 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hguard.elf      
+2102        2209(1068 in SwapPss) kB   2164352 kB      5972 kB      1088 kB         0 kB         0 kB         0 kB         0 kB         0 kB     thp_extra       
+1700         2188(952 in SwapPss) kB   2160752 kB      2020 kB      1212 kB         0 kB         0 kB         0 kB         0 kB         0 kB     nearlink_host   
+1629        2151(1152 in SwapPss) kB   2161136 kB      4376 kB       960 kB         0 kB         0 kB         0 kB         0 kB         0 kB     user_auth_host  
+1620         2133(924 in SwapPss) kB   2158068 kB      5156 kB      1140 kB         0 kB         0 kB         0 kB         0 kB         0 kB     tp_host         
+1638        2104(1556 in SwapPss) kB   2166600 kB       872 kB       436 kB         0 kB         0 kB         0 kB         0 kB         0 kB     codec_host      
+64             2102(0 in SwapPss) kB   2144560 kB      4964 kB       860 kB         0 kB         0 kB         0 kB         0 kB         0 kB     crypto.elf      
+1661        2085(1108 in SwapPss) kB   2162092 kB      5036 kB       864 kB         0 kB         0 kB         0 kB         0 kB         0 kB     allocator_host  
+2694         2073(988 in SwapPss) kB   2161352 kB      1364 kB      1076 kB         0 kB         0 kB         0 kB         0 kB         0 kB     location_host   
+1675         2054(924 in SwapPss) kB   2160724 kB      4592 kB      1080 kB         0 kB         0 kB         0 kB         0 kB         0 kB     blue_host       
+671            2030(0 in SwapPss) kB   2155276 kB      5120 kB      1980 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hdf_devmgr      
+1056        2019(1212 in SwapPss) kB   2158404 kB      1240 kB       800 kB         0 kB         0 kB         0 kB         0 kB         0 kB     nfc_tag_service 
+608          1878(976 in SwapPss) kB   2129632 kB      1448 kB       892 kB         0 kB         0 kB         0 kB         0 kB         0 kB     ueventd         
+1618         1871(796 in SwapPss) kB   2155284 kB      4788 kB      1020 kB         0 kB         0 kB         0 kB         0 kB         0 kB     factory_host    
+44106          1870(0 in SwapPss) kB   2157656 kB      5852 kB      1784 kB         0 kB         0 kB         0 kB         0 kB         0 kB     contexthub_ble_host
+4388          1836(32 in SwapPss) kB   2156636 kB      4940 kB      1756 kB         0 kB         0 kB         0 kB         0 kB         0 kB     deviceinfoservice
+1169        1811(1424 in SwapPss) kB   2163940 kB       448 kB       384 kB         0 kB         0 kB         0 kB         0 kB         0 kB     mhcserver       
+1633        1806(1112 in SwapPss) kB   2156676 kB      1404 kB       680 kB         0 kB         0 kB         0 kB         0 kB         0 kB     connected_tag_host
+1615         1790(888 in SwapPss) kB   2157392 kB      4508 kB       852 kB         0 kB         0 kB         0 kB         0 kB         0 kB     battery_extra_host
+1694        1704(1308 in SwapPss) kB   2155844 kB       608 kB       388 kB         0 kB         0 kB         0 kB         0 kB         0 kB     off_find_host   
+1485        1681(1328 in SwapPss) kB   2159396 kB       564 kB       348 kB         0 kB         0 kB         0 kB         0 kB         0 kB     isulad          
+1613        1674(1280 in SwapPss) kB   2155848 kB       596 kB       388 kB         0 kB         0 kB         0 kB         0 kB         0 kB     secure_element_host
+1619        1666(1244 in SwapPss) kB   2155856 kB       624 kB       416 kB         0 kB         0 kB         0 kB         0 kB         0 kB     lcd_host        
+7863           1658(0 in SwapPss) kB   2154816 kB      8292 kB      1488 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hidumper        
+1621        1630(1240 in SwapPss) kB   2156228 kB       592 kB       384 kB         0 kB         0 kB         0 kB         0 kB         0 kB     input_user_host 
+822         1604(1448 in SwapPss) kB   2156556 kB       192 kB       152 kB         0 kB         0 kB         0 kB         0 kB         0 kB     powerct         
+1147        1550(1112 in SwapPss) kB   2155712 kB       640 kB       432 kB         0 kB         0 kB         0 kB         0 kB         0 kB     hinetmanager    
+53204          1400(0 in SwapPss) kB   2153624 kB      4144 kB      1360 kB         0 kB         0 kB         0 kB         0 kB         0 kB     bms_behavior    
+1782         1385(676 in SwapPss) kB   2149876 kB       876 kB       708 kB         0 kB         0 kB         0 kB         0 kB         0 kB     isplogcat       
+647          1312(688 in SwapPss) kB   2151436 kB      1224 kB       616 kB         0 kB         0 kB         0 kB         0 kB         0 kB     faultloggerd    
+687          1277(728 in SwapPss) kB   2149752 kB      2568 kB       520 kB         0 kB         0 kB         0 kB         0 kB         0 kB     oeminfo_nvme_server
+1683         1219(880 in SwapPss) kB   2141896 kB      1768 kB       292 kB         0 kB         0 kB         0 kB         0 kB         0 kB     sleeplogcat     
+1664         1213(884 in SwapPss) kB   2141900 kB      2028 kB       280 kB         0 kB         0 kB         0 kB         0 kB         0 kB     chargelogcat    
+3026          1212(16 in SwapPss) kB   2150188 kB      3108 kB      1168 kB         0 kB         0 kB         0 kB         0 kB         0 kB     oam_hisi        
+1705         1194(884 in SwapPss) kB   2141900 kB      1036 kB       268 kB         0 kB         0 kB         0 kB         0 kB         0 kB     inputlogcat     
+684          1166(704 in SwapPss) kB   2154928 kB      2352 kB       444 kB         0 kB         0 kB         0 kB         0 kB         0 kB     teecd           
+1732         1111(672 in SwapPss) kB   2150764 kB       988 kB       432 kB         0 kB         0 kB         0 kB         0 kB         0 kB     shs             
+1727         1061(620 in SwapPss) kB   2139284 kB      2236 kB       424 kB         0 kB         0 kB         0 kB         0 kB         0 kB     tlogcat         
+1990         1005(680 in SwapPss) kB   2139320 kB      1712 kB       316 kB         0 kB         0 kB         0 kB         0 kB         0 kB     data_monitor_service
+821           973(680 in SwapPss) kB   2139296 kB      1332 kB       280 kB         0 kB         0 kB         0 kB         0 kB         0 kB     bms_event       
+
+Total Pss by OOM adjustment:
+System: 1514518 kB
+   render_service(pid=1955):  352149 kB
+   sysmgr-main(pid=2):        207443 kB
+   devhost.elf(pid=69):       105066 kB
+   foundation(pid=1976):      94493 kB
+   hiview(pid=670):           48216 kB (4840 kB in SwapPss)
+   CameraDaemon(pid=1171):    45886 kB (13076 kB in SwapPss)
+   aptouch_daemon(pid=1612):  43971 kB
+   multimodalinput(pid=980):  42823 kB
+   netmanager(pid=1205):      41926 kB (5964 kB in SwapPss)
+   resource_schedule_service(pid=1110): 37479 kB (11684 kB in SwapPss)
+   CollaborationFwk(pid=2087): 33773 kB (9384 kB in SwapPss)
+   telephony(pid=1235):       24089 kB (9916 kB in SwapPss)
+   hiaiserver(pid=1141):      20160 kB (12744 kB in SwapPss)
+   audio_server(pid=827):     20106 kB (5712 kB in SwapPss)
+   softbus_server(pid=1753):  17484 kB (3728 kB in SwapPss)
+   camera_service(pid=2038):  15223 kB (7380 kB in SwapPss)
+   composer_host(pid=1670):   13533 kB (4532 kB in SwapPss)
+   push_manager_service(pid=1494): 12933 kB (5024 kB in SwapPss)
+   file_guard(pid=1980):      12904 kB (10120 kB in SwapPss)
+   powermgr(pid=1841):        11906 kB (4288 kB in SwapPss)
+   batterycare_service(pid=2041): 11394 kB (5164 kB in SwapPss)
+   huawei_id_svc(pid=1924):   11029 kB (2280 kB in SwapPss)
+   security_guard(pid=1768):  9648 kB (1316 kB in SwapPss)
+   virus_protection_service(pid=1730): 8990 kB (700 kB in SwapPss)
+   audio_host(pid=1679):      8872 kB (1512 kB in SwapPss)
+   devmgr.elf(pid=65):        8462 kB
+   memmgrservice(pid=959):    8360 kB
+   accountmgr(pid=2082):      8007 kB (2224 kB in SwapPss)
+   useriam(pid=1733):         7511 kB (3244 kB in SwapPss)
+   storage_daemon(pid=663):   7433 kB (2956 kB in SwapPss)
+   cloudfiledaemon(pid=2010): 7289 kB (4304 kB in SwapPss)
+   file_monitor_service(pid=1455): 6651 kB (2612 kB in SwapPss)
+   samgr(pid=664):            6171 kB
+   time_service(pid=1570):    5991 kB (3796 kB in SwapPss)
+   privacy_service(pid=1812): 5763 kB (2184 kB in SwapPss)
+   huks_service(pid=954):     5706 kB (2364 kB in SwapPss)
+   code_protect(pid=1992):    5689 kB (2468 kB in SwapPss)
+   hilogd(pid=632):           5608 kB (956 kB in SwapPss)
+   appspawn(pid=673):         5598 kB
+   apppool(pid=7340):         5550 kB
+   accesstoken_service(pid=1173): 5403 kB (2056 kB in SwapPss)
+   init(pid=1):               5221 kB (1548 kB in SwapPss)
+   aps_manager(pid=2046):     5140 kB (3068 kB in SwapPss)
+   nwebspawn(pid=8784):       5020 kB (982 kB in SwapPss)
+   sandbox_manager_service(pid=1771): 4818 kB (2488 kB in SwapPss)
+   netsysnative(pid=1842):    4798 kB (1220 kB in SwapPss)
+   dlp_credential_service_sa(pid=901): 4698 kB (1484 kB in SwapPss)
+   hdcd(pid=52955):           4592 kB
+   storage_manager(pid=662):  4449 kB (1640 kB in SwapPss)
+   client_cloud_cache_service(pid=2030): 4391 kB (1124 kB in SwapPss)
+   display_engine_service(pid=1989): 4238 kB (1628 kB in SwapPss)
+   resource_schedule_executor(pid=1057): 3957 kB (2004 kB in SwapPss)
+   fusion_connectivity_manager_ext(pid=1975): 3799 kB (1620 kB in SwapPss)
+   wireless_hid_accessory_manager_ability(pid=1137): 3753 kB (1772 kB in SwapPss)
+   riladapter_host(pid=1659): 3362 kB (1564 kB in SwapPss)
+   cadaemon(pid=683):         3286 kB (1888 kB in SwapPss)
+   ui_service(pid=1738):      3103 kB (1764 kB in SwapPss)
+   concurrent_task_service(pid=863): 3089 kB (1652 kB in SwapPss)
+   power_host(pid=1691):      2989 kB (1276 kB in SwapPss)
+   usb_host(pid=1672):        2910 kB (908 kB in SwapPss)
+   pin_auth_host(pid=1776):   2746 kB (1504 kB in SwapPss)
+   perfgenius_host(pid=1614): 2742 kB (1192 kB in SwapPss)
+   wifi_host(pid=1639):       2739 kB (960 kB in SwapPss)
+   hignss_110x_ohos(pid=3024): 2732 kB (124 kB in SwapPss)
+   fingerprint_auth_host(pid=1719): 2710 kB (1264 kB in SwapPss)
+   media_monitor(pid=1868):   2618 kB (748 kB in SwapPss)
+   sensor_host(pid=1654):     2569 kB (1228 kB in SwapPss)
+   hdc_credential(pid=904):   2452 kB (1944 kB in SwapPss)
+   param_watcher(pid=665):    2375 kB (1048 kB in SwapPss)
+   hguard.elf(pid=524):       2271 kB
+   thp_extra(pid=2102):       2209 kB (1068 kB in SwapPss)
+   nearlink_host(pid=1700):   2188 kB (952 kB in SwapPss)
+   user_auth_host(pid=1629):  2151 kB (1152 kB in SwapPss)
+   tp_host(pid=1620):         2133 kB (924 kB in SwapPss)
+   codec_host(pid=1638):      2104 kB (1556 kB in SwapPss)
+   crypto.elf(pid=64):        2102 kB
+   allocator_host(pid=1661):  2085 kB (1108 kB in SwapPss)
+   blue_host(pid=1675):       2054 kB (924 kB in SwapPss)
+   hdf_devmgr(pid=671):       2030 kB
+   nfc_tag_service(pid=1056): 2019 kB (1212 kB in SwapPss)
+   factory_host(pid=1618):    1871 kB (796 kB in SwapPss)
+   mhcserver(pid=1169):       1811 kB (1424 kB in SwapPss)
+   connected_tag_host(pid=1633): 1806 kB (1112 kB in SwapPss)
+   battery_extra_host(pid=1615): 1790 kB (888 kB in SwapPss)
+   off_find_host(pid=1694):   1704 kB (1308 kB in SwapPss)
+   isulad(pid=1485):          1681 kB (1328 kB in SwapPss)
+   secure_element_host(pid=1613): 1674 kB (1280 kB in SwapPss)
+   lcd_host(pid=1619):        1666 kB (1244 kB in SwapPss)
+   hidumper(pid=7863):        1658 kB
+   input_user_host(pid=1621): 1630 kB (1240 kB in SwapPss)
+   powerct(pid=822):          1604 kB (1448 kB in SwapPss)
+   hinetmanager(pid=1147):    1550 kB (1112 kB in SwapPss)
+   faultloggerd(pid=647):     1312 kB (688 kB in SwapPss)
+   oeminfo_nvme_server(pid=687): 1277 kB (728 kB in SwapPss)
+   sleeplogcat(pid=1683):     1219 kB (880 kB in SwapPss)
+   chargelogcat(pid=1664):    1213 kB (884 kB in SwapPss)
+   oam_hisi(pid=3026):        1212 kB (16 kB in SwapPss)
+   inputlogcat(pid=1705):     1194 kB (884 kB in SwapPss)
+   teecd(pid=684):            1166 kB (704 kB in SwapPss)
+   shs(pid=1732):             1111 kB (672 kB in SwapPss)
+   tlogcat(pid=1727):         1061 kB (620 kB in SwapPss)
+   data_monitor_service(pid=1990): 1005 kB (680 kB in SwapPss)
+   bms_event(pid=821):        973 kB (680 kB in SwapPss)
+OnDemand_system: 332529 kB
+   index_insert_service(pid=7233): 51524 kB
+   file_manager_service(pid=7230): 25455 kB
+   edm(pid=5038):             19934 kB (1780 kB in SwapPss)
+   vm_manager(pid=38512):     18569 kB (11048 kB in SwapPss)
+   hwf_service(pid=37101):    17304 kB
+   bluetooth_service(pid=43609): 16988 kB
+   wifi_manager_service(pid=3697): 16981 kB (668 kB in SwapPss)
+   task_manager_service(pid=1627): 16578 kB (11528 kB in SwapPss)
+   hidumper_service(pid=6511): 16407 kB
+   locationhub(pid=1641):     16041 kB (8048 kB in SwapPss)
+   atomicservice_ecological_rule_manager(pid=56595): 15433 kB
+   download_server(pid=20819): 12838 kB
+   nearlink_service(pid=44305): 11823 kB
+   appgallery_service(pid=8637): 9998 kB (1176 kB in SwapPss)
+   enterprise_account_auth_service(pid=12105): 8816 kB
+   selection_service(pid=1921): 8803 kB (6692 kB in SwapPss)
+   space_mgr_service(pid=6949): 8523 kB
+   security_collector(pid=15415): 6627 kB
+   wpa_host(pid=44132):       6219 kB
+   el5_filekey_manager(pid=6937): 5303 kB
+   cert_manager_service(pid=5199): 4662 kB (16 kB in SwapPss)
+   comm_protocol_resource_manager(pid=1728): 4510 kB (2316 kB in SwapPss)
+   gamecontroller_server(pid=13001): 2751 kB
+   location_host(pid=2694):   2073 kB (988 kB in SwapPss)
+   ueventd(pid=608):          1878 kB (976 kB in SwapPss)
+   contexthub_ble_host(pid=44106): 1870 kB
+   deviceinfoservice(pid=4388): 1836 kB (32 kB in SwapPss)
+   bms_behavior(pid=53204):   1400 kB
+   isplogcat(pid=1782):       1385 kB (676 kB in SwapPss)
+Persistent: 1005539 kB
+   com.ohos.sceneboard(pid=6864): 545016 kB
+   tech.sanway.ecoengine.kds(pid=29619): 203057 kB (56584 kB in SwapPss)
+   com.huawei.hmos.aidataservice(pid=7177): 59714 kB (6456 kB in SwapPss)
+   com.ohos.sceneboard:EngineServiceAbility:1(pid=8400): 43618 kB
+   com.huawei.hmsapp.samplemanagement(pid=4263): 37156 kB
+   com.ohos.FusionSearch(pid=48498): 27284 kB (4448 kB in SwapPss)
+   media_service(pid=1847):   26291 kB
+   msdp(pid=1491):            17274 kB (10736 kB in SwapPss)
+   av_codec_service(pid=1810): 16511 kB (864 kB in SwapPss)
+   usb_service(pid=52531):    10478 kB
+   device_manager(pid=1689):  7894 kB (2800 kB in SwapPss)
+   asset_service(pid=4147):   7455 kB (152 kB in SwapPss)
+   file_system_service(pid=7220): 3791 kB
+Foreground: 919529 kB
+   com.huawei.his.xgate(pid=14573): 141253 kB (41508 kB in SwapPss)
+   com.huawei.mbs.ismp.ep.epc.oh.ui(pid=12568): 112750 kB (8768 kB in SwapPss)
+   com.hisec.endpoint:EDRScanner2(pid=14767): 110044 kB
+   com.huawei.his.xgate:gpu(pid=14818): 88950 kB (32828 kB in SwapPss)
+   com.huawei.his.xgate.esm(pid=28896): 63727 kB (8564 kB in SwapPss)
+   com.huawei.his.xgate.mdm(pid=4255): 57537 kB
+   com.hisec.endpoint:EDRMaster0(pid=14746): 41262 kB
+   com.hisec.endpoint:EDRManager1(pid=14751): 37565 kB
+   com.huawei.hms.adsservice(pid=58505): 32493 kB (6728 kB in SwapPss)
+   com.hisec.endpoint(pid=14546): 23954 kB
+   com.huawei.hmos.aidispatchservice(pid=6982): 23903 kB (5616 kB in SwapPss)
+   com.huawei.hms.pafservice(pid=3890): 23847 kB
+   com.huawei.hmos.location(pid=4241): 23733 kB
+   com.ohos.notificationdialog:EnableNotificationDialog:60(pid=33149): 23510 kB
+   gameservice_server(pid=12599): 20044 kB
+   hianalytics(pid=1925):     19921 kB (5984 kB in SwapPss)
+   distributeddata(pid=1987): 16134 kB (2276 kB in SwapPss)
+   deviceprofile(pid=3069):   11217 kB (1856 kB in SwapPss)
+   inputmethod_service(pid=1923): 9974 kB (5124 kB in SwapPss)
+   accessibility(pid=826):    9338 kB (6172 kB in SwapPss)
+   av_session(pid=2042):      8844 kB (4352 kB in SwapPss)
+   pasteboard_service(pid=8069): 7556 kB (352 kB in SwapPss)
+   wallpaper_service(pid=1237): 4617 kB (3760 kB in SwapPss)
+   sensors(pid=1762):         3858 kB (1412 kB in SwapPss)
+   drm_service(pid=1985):     3498 kB (2388 kB in SwapPss)
+visible: 0 kB
+Suspend-delay: 461453 kB
+   com.huawei.hmos.inputmethod:inputMethod(pid=40874): 196961 kB
+   com.ohos.FusionSearch:search(pid=6988): 106193 kB
+   com.huawei.hmos.hsdr:workScheduler(pid=59068): 42899 kB
+   com.huawei.hmos.asde:workScheduler(pid=18837): 40966 kB (3040 kB in SwapPss)
+   com.huawei.hmos.ouc:workScheduler(pid=29928): 36039 kB
+   com.ohos.medialibrary.medialibrarydata(pid=7262): 27466 kB (2168 kB in SwapPss)
+   com.huawei.his.xgate.mdm:enterpriseAdmin(pid=5170): 10929 kB
+Perceived: 311672 kB
+   com.huawei.his.hismall(pid=12373): 122403 kB
+   com.huawei.his.xgate.esm:dsc(pid=14555): 113597 kB (106252 kB in SwapPss)
+   com.huawei.his.hismall:gpu(pid=12926): 56076 kB (488 kB in SwapPss)
+   com.huawei.his.xgate.esm:sso(pid=14568): 19596 kB (11724 kB in SwapPss)
+Dist-device: 0 kB
+Background: 222362 kB
+   com.huawei.his.xgate:render(pid=15068): 94923 kB (24777 kB in SwapPss)
+   com.ohos.contactsdataability(pid=14005): 45752 kB (24688 kB in SwapPss)
+   com.huawei.his.xgate:render(pid=15066): 35564 kB (25154 kB in SwapPss)
+   com.huawei.hms.pushservice(pid=5094): 26323 kB
+   com.huawei.hmos.numberidentity(pid=14165): 19800 kB (13144 kB in SwapPss)
+Undefined: 0 kB
+
+Total Pss by Category:
+File-backed Page(1547073 kB):
+      1325024 kB : .so
+       158352 kB : other
+        46375 kB : .hap
+        13308 kB : .ttf
+         3160 kB : .db
+          854 kB : dev
+Anonymous Page(2938507 kB):
+      1792096 kB : native heap
+       556432 kB : ark ts heap
+       551355 kB : other
+        35960 kB : stack
+         2664 kB : dev
+            0 kB : guard
+GPU(99496 kB):
+        99496 kB : GL
+Graph(156056 kB):
+       156056 kB : Graph
+DMA(156056 kB):
+       156056 kB : Dma
+
+      Total RAM:32680648 kB
+       Free RAM:24154539 kB (23034579 cached + 1119960 free)
+       Used RAM:5483865 kB (3790805 total pss + 1693060 kernel)
+       Lost RAM:3737019 kB
+
+Total RAM by Category:
+ Hardware Usage:726464 kB
+      CMA Usage:0 kB
+   Kernel Usage:802957 kB
+Processes Usage:4485580 kB
+
+Total Purgeable:
+  Total PurgSum:0 kB
+  Total PurgPin:0 kB

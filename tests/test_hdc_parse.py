@@ -12,6 +12,9 @@ def test_list_targets_fixture_is_parsed():
         "ABCDEF123456",
         "COM1",
         "ZXCVBN098765",
+        "3QC0124A10000066",
     ]
     assert targets[0]["connection_type"] == "TCP"
-    assert targets[-1]["status"] == "Offline"
+    # 真机（华为 MateBook 2in1）输出：tab 分隔 + Connected 状态
+    assert targets[-1]["status"] == "Connected"
+    assert targets[3]["status"] == "Offline"

@@ -129,4 +129,13 @@ mod tests {
         assert!(rx_kbps > 400.0); // 大约 488 KB/s
         assert!((tx_kbps - 292.96875).abs() < 0.1);
     }
+
+    #[test]
+    fn parses_real_device_network_counters() {
+        let text = include_str!("../../tests/fixtures/real/harmony_pc/proc_net_dev.txt");
+        let snapshot = parse_proc_net_dev(text).unwrap();
+
+        assert!(snapshot.rx_bytes > 0);
+        assert!(snapshot.tx_bytes > 0);
+    }
 }

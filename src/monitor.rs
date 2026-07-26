@@ -1,8 +1,7 @@
 //! P0 采样循环。
 //!
-//! 采集内核只负责 HDC、解析和同构 Sample，不负责 HTTP 上报。Task 0 的真实
-//! PC/Mobile 命令输出冻结前，top_n_cpu 保持 None，避免把未经验证的设备端
-//! top 输出误当成稳定协议。
+//! 采集内核只负责 HDC、解析和同构 Sample，不负责 HTTP 上报。Harmony PC 已
+//! 冻结批量 top 与进程内存表格式；Mobile 在获得真机证据前仍由调用方关闭 TopN。
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -22,8 +21,9 @@ use crate::data::{
 };
 use crate::hdc::HdcClient;
 use crate::parse::{
-    diff_cpu_percent, parse_hidumper_cpuusage, parse_hidumper_mem_system, parse_proc_meminfo,
-    parse_proc_stat, parse_ps_ef, CpuStatSnapshot,
+    diff_cpu_percent, parse_hidumper_cpuusage, parse_hidumper_mem_processes,
+    parse_hidumper_mem_system, parse_proc_meminfo, parse_proc_stat, parse_ps_ef, CpuStatSnapshot,
+    ProcessMemSnapshot,
 };
 use crate::ring_buffer::RingBuffer;
 
@@ -292,6 +292,8 @@ fn collect_sample_with_optional<C: ShellClient>(
     let mut cpu_text = None;
     let mut mem_text = None;
     let mut cpu_fallback_percent = None;
+    let needs_process_snapshot =
+        config.enable_process && (config.process_filter.is_some() || config.top_n_cpu.is_some());
 
     // 真实 hidumper 输出冻结前先保留 /proc fallback；单轮正常路径最多 4 次 shell。
     if config.enable_system_cpu {
@@ -358,7 +360,7 @@ fn collect_sample_with_optional<C: ShellClient>(
         }
     }
 
-    if config.enable_system_mem {
+    if config.enable_system_mem || needs_process_snapshot {
         match client.shell_with_cancel(
             &config.udid,
             "hidumper --mem",
@@ -380,120 +382,128 @@ fn collect_sample_with_optional<C: ShellClient>(
             }
             Err(_) => return Ok(None),
         }
-        if let Some(text) = mem_text {
-            let parsed = parse_hidumper_mem_system(&text)
-                .map(|value| (value.total_kb, value.used_kb, value.available_kb))
-                .or_else(|_| {
-                    parse_proc_meminfo(&text).map(|value| {
-                        (
-                            value.total_kb,
-                            value.total_kb.saturating_sub(value.available_kb),
-                            Some(value.available_kb),
-                        )
-                    })
-                })
-                .or_else(|_| {
-                    client
-                        .shell_with_cancel(
-                            &config.udid,
-                            "cat /proc/meminfo",
-                            SHELL_TIMEOUT_SECS,
-                            &inner.stop,
-                        )
-                        .map_err(|error| error.to_string())
-                        .and_then(|text| {
-                            parse_proc_meminfo(&text)
-                                .map_err(|error| error.to_string())
-                                .map(|value| {
-                                    (
-                                        value.total_kb,
-                                        value.total_kb.saturating_sub(value.available_kb),
-                                        Some(value.available_kb),
-                                    )
-                                })
+        if config.enable_system_mem {
+            if let Some(text) = mem_text.as_deref() {
+                let parsed = parse_hidumper_mem_system(text)
+                    .map(|value| (value.total_kb, value.used_kb, value.available_kb))
+                    .or_else(|_| {
+                        parse_proc_meminfo(text).map(|value| {
+                            (
+                                value.total_kb,
+                                value.total_kb.saturating_sub(value.available_kb),
+                                Some(value.available_kb),
+                            )
                         })
-                });
-            if let Ok((total_kb, used_kb, available_kb)) = parsed {
-                add_sensor(
-                    &mut raw,
-                    "Harmony Mem Total",
-                    total_kb as f64 / 1024.0,
-                    "MB",
-                );
-                add_sensor(&mut raw, "Harmony Mem Used", used_kb as f64 / 1024.0, "MB");
-                if let Some(value) = available_kb {
+                    })
+                    .or_else(|_| {
+                        client
+                            .shell_with_cancel(
+                                &config.udid,
+                                "cat /proc/meminfo",
+                                SHELL_TIMEOUT_SECS,
+                                &inner.stop,
+                            )
+                            .map_err(|error| error.to_string())
+                            .and_then(|text| {
+                                parse_proc_meminfo(&text)
+                                    .map_err(|error| error.to_string())
+                                    .map(|value| {
+                                        (
+                                            value.total_kb,
+                                            value.total_kb.saturating_sub(value.available_kb),
+                                            Some(value.available_kb),
+                                        )
+                                    })
+                            })
+                    });
+                if let Ok((total_kb, used_kb, available_kb)) = parsed {
                     add_sensor(
                         &mut raw,
-                        "Harmony Mem Available",
-                        value as f64 / 1024.0,
+                        "Harmony Mem Total",
+                        total_kb as f64 / 1024.0,
                         "MB",
                     );
+                    add_sensor(&mut raw, "Harmony Mem Used", used_kb as f64 / 1024.0, "MB");
+                    if let Some(value) = available_kb {
+                        add_sensor(
+                            &mut raw,
+                            "Harmony Mem Available",
+                            value as f64 / 1024.0,
+                            "MB",
+                        );
+                    }
+                    p0_count += 1;
                 }
-                p0_count += 1;
             }
         }
     }
 
     let mut processes = None;
-    if config.enable_process {
-        if let Some(filter) = &config.process_filter {
-            // 进程 shell 失败只降级进程字段，不能把已经采到的系统 CPU/内存整轮丢掉。
-            match client.shell_with_cancel(
-                &config.udid,
-                "ps -ef",
-                SHELL_TIMEOUT_SECS,
-                &inner.stop,
-            ) {
-                Ok(ps_text) => {
-                    let candidates = filtered_processes(filter, &parse_ps_ef(&ps_text));
-                    if !candidates.is_empty() {
-                        // 只调用一次批量 top，避免对全量 PID 逐个发起 HDC 请求。
-                        match client.shell_with_cancel(
-                            &config.udid,
-                            "top -n 1 -b",
-                            SHELL_TIMEOUT_SECS,
-                            &inner.stop,
-                        ) {
-                            Ok(top_text) => {
-                                let snapshots = parse_top_processes(&top_text);
-                                let mut details = Vec::new();
-                                for (pid, name) in candidates {
-                                    if let Some(snapshot) = snapshots.get(&pid) {
-                                        details.push(ProcessInfo {
-                                            pid,
-                                            name,
-                                            cpu_percent: clamp_percent(snapshot.cpu_percent),
-                                            working_set_mb: snapshot.memory_mb,
-                                            // 鸿蒙一期没有稳定 VSS 协议，先以 RSS/PSS 同构填充。
-                                            committed_memory_mb: snapshot.memory_mb,
-                                            gpu_percent: 0.0,
-                                            gpu_memory_mb: 0.0,
-                                            handle_count: 0,
-                                        });
-                                    }
-                                }
-                                if !details.is_empty() {
-                                    p0_count += 1;
-                                    processes = Some(details);
-                                }
+    let mut top_n_cpu = None;
+    if needs_process_snapshot {
+        // 进程 shell 失败只降级进程字段，不能把已经采到的系统 CPU/内存整轮丢掉。
+        match client.shell_with_cancel(&config.udid, "ps -ef", SHELL_TIMEOUT_SECS, &inner.stop) {
+            Ok(ps_text) => {
+                let process_list = parse_ps_ef(&ps_text);
+                match client.shell_with_cancel(
+                    &config.udid,
+                    "top -n 1 -b",
+                    SHELL_TIMEOUT_SECS,
+                    &inner.stop,
+                ) {
+                    Ok(top_text) => {
+                        let cpu_snapshots = parse_top_processes(&top_text);
+                        let mem_snapshots = mem_text
+                            .as_deref()
+                            .map(parse_hidumper_mem_processes)
+                            .unwrap_or_default();
+                        let all_details =
+                            process_details(&process_list, &cpu_snapshots, &mem_snapshots);
+
+                        if let Some(filter) = &config.process_filter {
+                            let candidates = filtered_processes(filter, &process_list)
+                                .into_iter()
+                                .map(|(pid, _)| pid)
+                                .collect::<Vec<_>>();
+                            let details = all_details
+                                .iter()
+                                .filter(|item| candidates.contains(&item.pid))
+                                .cloned()
+                                .collect::<Vec<_>>();
+                            if !details.is_empty() {
+                                p0_count += 1;
+                                processes = Some(details);
                             }
-                            Err(error)
-                                if matches!(error, crate::error::Error::Cancelled(_)) =>
-                            {
-                                return Ok(None);
-                            }
-                            Err(error) => {
-                                log::debug!("进程 top 快照不可用，本轮仅保留系统指标: {error}");
+                        }
+
+                        if let Some(limit) = config.top_n_cpu {
+                            let mut values = aggregate_processes(&all_details);
+                            values.sort_by(|left, right| {
+                                right
+                                    .cpu_percent_total
+                                    .total_cmp(&left.cpu_percent_total)
+                                    .then_with(|| left.name.cmp(&right.name))
+                            });
+                            values.truncate(limit);
+                            if !values.is_empty() {
+                                p0_count += 1;
+                                top_n_cpu = Some(values);
                             }
                         }
                     }
+                    Err(error) if matches!(error, crate::error::Error::Cancelled(_)) => {
+                        return Ok(None);
+                    }
+                    Err(error) => {
+                        log::debug!("进程 top 快照不可用，本轮仅保留系统指标: {error}");
+                    }
                 }
-                Err(error) if matches!(error, crate::error::Error::Cancelled(_)) => {
-                    return Ok(None);
-                }
-                Err(error) => {
-                    log::debug!("进程列表不可用，本轮仅保留系统指标: {error}");
-                }
+            }
+            Err(error) if matches!(error, crate::error::Error::Cancelled(_)) => {
+                return Ok(None);
+            }
+            Err(error) => {
+                log::debug!("进程列表不可用，本轮仅保留系统指标: {error}");
             }
         }
     }
@@ -506,7 +516,6 @@ fn collect_sample_with_optional<C: ShellClient>(
         .as_ref()
         .filter(|_| config.enable_aggregation)
         .map(|values| aggregate_processes(values));
-    // Task 0 尚未冻结 PC/Mobile 批量 CPU fixture，TopN 只能预留字段，运行时返回 None。
     let mut sample = Sample {
         sequence: inner.next_sequence(),
         elapsed_ms: elapsed.as_millis() as u64,
@@ -515,7 +524,7 @@ fn collect_sample_with_optional<C: ShellClient>(
         hwinfo_raw: raw,
         processes,
         aggregated,
-        top_n_cpu: None,
+        top_n_cpu,
         top_n_gpu: None,
     };
 
@@ -587,6 +596,30 @@ fn update_proc_cpu(
 struct TopProcessSnapshot {
     cpu_percent: f64,
     memory_mb: f64,
+}
+
+fn process_details(
+    process_list: &[(u32, String)],
+    cpu_snapshots: &HashMap<u32, TopProcessSnapshot>,
+    mem_snapshots: &HashMap<u32, ProcessMemSnapshot>,
+) -> Vec<ProcessInfo> {
+    process_list
+        .iter()
+        .filter_map(|(pid, name)| {
+            let cpu = cpu_snapshots.get(pid)?;
+            let mem = mem_snapshots.get(pid)?;
+            Some(ProcessInfo {
+                pid: *pid,
+                name: name.clone(),
+                cpu_percent: clamp_percent(cpu.cpu_percent),
+                working_set_mb: mem.rss_kb as f64 / 1024.0,
+                committed_memory_mb: mem.vss_kb as f64 / 1024.0,
+                gpu_percent: 0.0,
+                gpu_memory_mb: 0.0,
+                handle_count: 0,
+            })
+        })
+        .collect()
 }
 
 fn parse_top_processes(text: &str) -> HashMap<u32, TopProcessSnapshot> {
@@ -712,11 +745,13 @@ fn clamp_non_negative(value: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::{
-        aggregate_processes, collect_sample, memory_to_mb, parse_top_processes, MonitorConfigOwned,
-        MonitorInner, ShellClient,
+        aggregate_processes, collect_sample, memory_to_mb, parse_top_processes, process_details,
+        MonitorConfigOwned, MonitorInner, ShellClient,
     };
     use crate::data::{ProcessFilter, ProcessInfo};
     use crate::error::Error;
+    use crate::parse::{parse_ps_ef, ProcessMemSnapshot};
+    use std::collections::HashMap;
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Mutex;
 
@@ -732,6 +767,54 @@ mod tests {
     fn parses_simple_process_line() {
         let values = parse_top_processes("123 12.5 10m app\n");
         assert_eq!(values.get(&123).unwrap().memory_mb, 10.0);
+    }
+
+    #[test]
+    fn parses_real_device_top_output() {
+        let text = include_str!("../tests/fixtures/real/harmony_pc/top_n1_b.txt");
+        let values = parse_top_processes(text);
+
+        assert!(!values.is_empty());
+        assert!(values.values().all(|value| value.cpu_percent >= 0.0));
+    }
+
+    #[test]
+    fn process_details_require_cpu_and_memory_and_use_rss_vss() {
+        let processes = parse_ps_ef(include_str!("../tests/fixtures/ps_ef.txt"));
+        let cpu = parse_top_processes("200 12.5 10m com.example.app\n");
+        let memory = HashMap::from([(
+            200,
+            ProcessMemSnapshot {
+                pss_kb: 8192,
+                vss_kb: 32768,
+                rss_kb: 16384,
+                uss_kb: 4096,
+            },
+        )]);
+
+        let details = process_details(&processes, &cpu, &memory);
+        assert_eq!(details.len(), 1);
+        assert_eq!(details[0].working_set_mb, 16.0);
+        assert_eq!(details[0].committed_memory_mb, 32.0);
+        assert!(process_details(&processes, &cpu, &HashMap::new()).is_empty());
+    }
+
+    #[test]
+    fn real_device_process_snapshot_maps_cpu_rss_and_vss() {
+        let processes = parse_ps_ef(include_str!("../tests/fixtures/real/harmony_pc/ps_ef.txt"));
+        let cpu = parse_top_processes(include_str!(
+            "../tests/fixtures/real/harmony_pc/top_n1_b.txt"
+        ));
+        let memory = crate::parse::parse_hidumper_mem_processes(include_str!(
+            "../tests/fixtures/real/harmony_pc/hidumper_mem.txt"
+        ));
+
+        let details = process_details(&processes, &cpu, &memory);
+        let process = details.iter().find(|item| item.pid == 14751).unwrap();
+        assert_eq!(process.name, "com.hisec.endpoint:EDRManager1");
+        assert_eq!(process.cpu_percent, 57.1);
+        assert_eq!(process.working_set_mb, 130924.0 / 1024.0);
+        assert_eq!(process.committed_memory_mb, 6480768.0 / 1024.0);
     }
 
     #[test]
@@ -789,7 +872,10 @@ mod tests {
                     Ok(include_str!("../tests/fixtures/hidumper_cpuusage.txt").to_string())
                 }
                 "hidumper --mem" => {
-                    Ok(include_str!("../tests/fixtures/hidumper_mem.txt").to_string())
+                    Ok(format!(
+                        "{}\n200 8192(0 in SwapPss) kB 32768 kB 16384 kB 4096 kB 0 kB 0 kB 0 kB 0 kB 0 kB com.example.app\n",
+                        include_str!("../tests/fixtures/hidumper_mem.txt")
+                    ))
                 }
                 "ps -ef" => Ok(include_str!("../tests/fixtures/ps_ef.txt").to_string()),
                 "top -n 1 -b" => Ok("200 12.5 10m com.example.app\n".to_string()),
@@ -835,7 +921,59 @@ mod tests {
         assert_eq!(sample.system.cpu_percent, Some(35.0));
         assert!(sample.hwinfo_raw.contains_key("Harmony CPU Usage"));
         assert_eq!(sample.processes.as_ref().unwrap()[0].pid, 200);
+        assert_eq!(sample.processes.as_ref().unwrap()[0].working_set_mb, 16.0);
+        assert_eq!(
+            sample.processes.as_ref().unwrap()[0].committed_memory_mb,
+            32.0
+        );
         assert_eq!(sample.aggregated.as_ref().unwrap()[0].process_count, 1);
+        assert_eq!(
+            fake.calls.lock().unwrap().as_slice(),
+            [
+                "hidumper --cpuusage",
+                "hidumper --mem",
+                "ps -ef",
+                "top -n 1 -b"
+            ]
+        );
+    }
+
+    #[test]
+    fn top_n_cpu_reuses_the_four_p0_commands() {
+        let config = MonitorConfigOwned {
+            udid: "FAKE-UDID".to_string(),
+            hdc_path: None,
+            interval: 1.0,
+            duration: Some(2.0),
+            process_filter: None,
+            top_n_cpu: Some(1),
+            top_n_gpu: None,
+            enable_aggregation: true,
+            enable_system_cpu: true,
+            enable_system_mem: true,
+            enable_process: true,
+            enable_gpu: false,
+            enable_network: false,
+            enable_thermal_power: false,
+        };
+        let fake = FakeHdc::new();
+        let inner = std::sync::Arc::new(MonitorInner::new());
+        let mut previous_cpu = None;
+        let sample = collect_sample(
+            &config,
+            &fake,
+            &inner,
+            &mut previous_cpu,
+            std::time::Duration::from_millis(25),
+        )
+        .unwrap()
+        .unwrap();
+
+        let top_n = sample.top_n_cpu.unwrap();
+        assert_eq!(top_n.len(), 1);
+        assert_eq!(top_n[0].name, "com.example.app");
+        assert_eq!(top_n[0].cpu_percent_total, 12.5);
+        assert!(sample.processes.is_none());
         assert_eq!(
             fake.calls.lock().unwrap().as_slice(),
             [

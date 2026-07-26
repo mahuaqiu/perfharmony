@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "perfharmony"
-version = "0.1.0"
+version = "0.1.2"
 description = "HarmonyOS performance collector via HDC"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -16,4 +16,3 @@ dev = ["pytest>=7.0"]
 python-source = "python"
 module-name = "perfharmony._native"
 features = ["pyo3/extension-module"]
-

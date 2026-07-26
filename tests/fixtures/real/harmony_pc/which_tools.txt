@@ -1,0 +1,3 @@
+# device: HAD-W32 HAD-W24 6.1.0.130(SP13ENTC293E107R2P1log) API 24
+/bin/hiperf
+/bin/top

@@ -169,4 +169,13 @@ root         1     0  0 00:00 ?        00:00:01 /init
         let result = parse_ps_ef("");
         assert!(result.is_empty());
     }
+
+    #[test]
+    fn parses_real_device_processes() {
+        let text = include_str!("../../tests/fixtures/real/harmony_pc/ps_ef.txt");
+        let result = parse_ps_ef(text);
+
+        assert!(result.len() > 100);
+        assert!(result.iter().any(|(_, name)| name == "init"));
+    }
 }

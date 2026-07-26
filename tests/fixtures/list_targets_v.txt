@@ -3,4 +3,5 @@ List of devices attached
 ABCDEF123456      USB    Ready    phone-demo         hdc
 COM1              UART   Ready    harmony-uart       hdc
 ZXCVBN098765      USB    Offline  phone-offline      hdc
+3QC0124A10000066		USB	Connected	localhost	hdc
 malformed output without a status

@@ -1,0 +1,16 @@
+# device: HAD-W32 HAD-W24 6.1.0.130(SP13ENTC293E107R2P1log) API 24
+Inter-|   Receive                                                |  Transmit
+ face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+    lo: 14113159   94654    0    0    0     0          0         0 14113159   94654    0    0    0     0       0          0
+dummy0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ tunl0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ip_vti0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ip6_vti0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+  sit0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ip6tnl0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+Hisilicon0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ wlan0: 6119026831 14117061    0  964    0     0          0         0 8904139633 8090066    0    0    0     0       0          0
+  p2p0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ wlan1:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ chba0: 14149999231 13931661    0    0    0     0          0         0 2771541565 3666736    0    0    0     0       0          0
+  nan0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0

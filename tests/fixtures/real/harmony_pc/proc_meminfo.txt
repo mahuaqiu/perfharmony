@@ -1,0 +1,69 @@
+# device: HAD-W32 HAD-W24 6.1.0.130(SP13ENTC293E107R2P1log) API 24
+MemTotal:       32680648 kB
+MemFree:         1104968 kB
+MemAvailable:   20635648 kB
+Buffers:               0 kB
+Cached:         22963996 kB
+SwapCached:          960 kB
+Active:          4500372 kB
+Inactive:       19976100 kB
+Active(anon):     116164 kB
+Inactive(anon):  2432728 kB
+Active(file):    4384208 kB
+Inactive(file): 17543372 kB
+Active(purg):          0 kB
+Inactive(purg):        0 kB
+Pined(purg):           0 kB
+Unevictable:       42984 kB
+FileUnmap:       1211330
+FileUnmapFail:    325179
+Protected:        942008 kB
+Mlocked:          122276 kB
+SwapTotal:      52428800 kB
+SwapFree:       51732468 kB
+ZramUsed:         136012 kB
+Dirty:               220 kB
+Writeback:             0 kB
+AnonPages:       2849468 kB
+Mapped:           978616 kB
+Shmem:             93072 kB
+Slab:            1413288 kB
+SReclaimable:    1064194 kB
+SUnreclaim:       349093 kB
+SlabLarge:             0 kB
+KReclaimable:    1084738 kB
+KernelStack:        2552 kB
+KernelDynamic:     49068 kB
+PageTables:       182152 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:    68767076 kB
+Committed_AS:   76115924 kB
+VmallocTotal:   536870848 kB
+VmallocUsed:       26412 kB
+VmallocChunk:          0 kB
+Percpu:                0 kB
+HardwareCorrupted:     0 kB
+CmaTotal:         610304 kB
+CmaFree:          594464 kB
+CmaUsed:           15840 kB
+IonTotalCache:   1099648 kB
+IonTotalUsed:     146392 kB
+GpuTotalUsed:      99516 kB
+DmaHeapTotalCache:  1099648 kB
+DmaHeapTotalUsed:   146392 kB
+DmaHeapReusedlistCache:        0 kB
+DmaHeapFreelistCache:        0 kB
+DmaHeapThirdTotalUsed:        0 kB
+RsvTotalUsed:     261124 kB
+AnonHugePages:         0 kB
+ShmemHugePages:        0 kB
+ShmemPmdMapped:        0 kB
+HugePages_Total:       2
+HugePages_Free:        0
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+Hugetlb:            4096 kB
+AshmemUsed:        46064 kB

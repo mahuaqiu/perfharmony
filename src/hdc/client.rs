@@ -11,11 +11,36 @@ use regex::Regex;
 
 use crate::error::Error;
 
+/// Windows 下隐藏子进程控制台窗口（CREATE_NO_WINDOW）。
+/// Worker 是无控制台的 GUI 进程，不加该标志每次拉起 hdc.exe
+/// 都会新建控制台，采集时屏幕上黑框一闪而过。
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
+fn new_hdc_command(path: &PathBuf) -> Command {
+    #[allow(unused_mut)]
+    let mut command = Command::new(path);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+    command
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TargetInfo {
     pub udid: String,
     pub status: String,
     pub connection_type: String,
+}
+
+impl TargetInfo {
+    /// 真机 HDC 的状态列是 Connected（如华为 MateBook 2in1），
+    /// 部分版本/模拟器是 Ready，两者都视为可用。
+    pub fn is_usable(&self) -> bool {
+        self.status.eq_ignore_ascii_case("ready") || self.status.eq_ignore_ascii_case("connected")
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -122,7 +147,7 @@ impl HdcClient {
                 None
             };
 
-        let mut child = Command::new(&self.path)
+        let mut child = new_hdc_command(&self.path)
             .args(args)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -285,10 +310,15 @@ mod tests {
     fn parses_mixed_target_output() {
         let output = include_str!("../../tests/fixtures/list_targets_v.txt");
         let targets = parse_list_targets(output);
-        assert_eq!(targets.len(), 4);
+        assert_eq!(targets.len(), 5);
         assert_eq!(targets[0].udid, "127.0.0.1:5555");
         assert_eq!(targets[1].connection_type, "USB");
         assert_eq!(targets[3].status, "Offline");
+        // 真机（华为 MateBook 2in1）输出：tab 分隔 + Connected 状态
+        assert_eq!(targets[4].udid, "3QC0124A10000066");
+        assert_eq!(targets[4].status, "Connected");
+        assert!(targets[4].is_usable());
+        assert!(!targets[3].is_usable());
     }
 
     #[test]

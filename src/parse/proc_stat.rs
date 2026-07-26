@@ -152,4 +152,19 @@ mod tests {
         let result = diff_cpu_percent(&snap, &snap);
         assert!(result.is_none());
     }
+
+    #[test]
+    fn parses_real_device_snapshots() {
+        let t0 = parse_proc_stat(include_str!(
+            "../../tests/fixtures/real/harmony_pc/proc_stat_t0.txt"
+        ))
+        .unwrap();
+        let t1 = parse_proc_stat(include_str!(
+            "../../tests/fixtures/real/harmony_pc/proc_stat_t1.txt"
+        ))
+        .unwrap();
+
+        let percent = diff_cpu_percent(&t0, &t1).unwrap();
+        assert!((0.0..=100.0).contains(&percent));
+    }
 }

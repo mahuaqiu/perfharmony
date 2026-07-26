@@ -9,7 +9,10 @@ pub mod ps;
 #[allow(unused_imports)]
 pub use hidumper_cpu::{parse_hidumper_cpuusage, HidumperCpuUsage};
 #[allow(unused_imports)]
-pub use hidumper_mem::{parse_hidumper_mem_pid, parse_hidumper_mem_system, ProcessMem, SystemMem};
+pub use hidumper_mem::{
+    parse_hidumper_mem_pid, parse_hidumper_mem_processes, parse_hidumper_mem_system, ProcessMem,
+    ProcessMemSnapshot, SystemMem,
+};
 #[allow(unused_imports)]
 pub use proc_meminfo::{parse_proc_meminfo, MemInfo};
 #[allow(unused_imports)]

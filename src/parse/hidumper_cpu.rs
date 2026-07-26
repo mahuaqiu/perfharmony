@@ -12,7 +12,7 @@ pub struct HidumperCpuUsage {
 
 /// 解析 hidumper --cpuusage 输出
 ///
-/// 合成 fixture 格式（待真机冻结后替换正则）：
+/// 兼容多行和真机单行分号分隔格式：
 /// ```
 /// CPU usage for the last time:
 /// Total: 35%
@@ -21,15 +21,13 @@ pub struct HidumperCpuUsage {
 /// iowait: 0%
 /// ```
 pub fn parse_hidumper_cpuusage(text: &str) -> Result<HidumperCpuUsage, Error> {
-    // TODO: 待真机 hidumper --cpuusage 输出冻结后替换此正则
-
-    let total_regex = Regex::new(r"Total:\s*(\d+(?:\.\d+)?)%")
+    let total_regex = Regex::new(r"(?i)Total:\s*(\d+(?:\.\d+)?)%")
         .map_err(|_| Error::ParseFailed("正则编译失败".to_string()))?;
-    let user_regex = Regex::new(r"User\s+space:\s*(\d+(?:\.\d+)?)%")
+    let user_regex = Regex::new(r"(?i)User\s+Space:\s*(\d+(?:\.\d+)?)%")
         .map_err(|_| Error::ParseFailed("正则编译失败".to_string()))?;
-    let system_regex = Regex::new(r"Kernel\s+space:\s*(\d+(?:\.\d+)?)%")
+    let system_regex = Regex::new(r"(?i)Kernel\s+Space:\s*(\d+(?:\.\d+)?)%")
         .map_err(|_| Error::ParseFailed("正则编译失败".to_string()))?;
-    let idle_regex = Regex::new(r"(?i)(?:Idle|iowait):\s*(\d+(?:\.\d+)?)%")
+    let idle_regex = Regex::new(r"(?i)\bidle:\s*(\d+(?:\.\d+)?)%")
         .map_err(|_| Error::ParseFailed("正则编译失败".to_string()))?;
 
     let total_str = total_regex
@@ -78,7 +76,7 @@ mod tests {
 Total: 35%
 User space: 20%
 Kernel space: 15%
-iowait: 0%
+idle: 0%
 "#;
 
         let result = parse_hidumper_cpuusage(text).unwrap();
@@ -86,6 +84,17 @@ iowait: 0%
         assert_eq!(result.user_percent, Some(20.0));
         assert_eq!(result.system_percent, Some(15.0));
         assert_eq!(result.idle_percent, Some(0.0));
+    }
+
+    #[test]
+    fn parses_real_device_cpuusage() {
+        let text = include_str!("../../tests/fixtures/real/harmony_pc/hidumper_cpuusage.txt");
+        let result = parse_hidumper_cpuusage(text).unwrap();
+
+        assert!((result.total_percent - 2.83).abs() < f64::EPSILON);
+        assert_eq!(result.user_percent, Some(1.27));
+        assert_eq!(result.system_percent, Some(1.55));
+        assert_eq!(result.idle_percent, Some(97.15));
     }
 
     #[test]

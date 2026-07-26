@@ -78,4 +78,13 @@ MemFree:         1200000 kB
         let result = parse_proc_meminfo(text);
         assert!(result.is_err());
     }
+
+    #[test]
+    fn parses_real_device_meminfo() {
+        let text = include_str!("../../tests/fixtures/real/harmony_pc/proc_meminfo.txt");
+        let mem = parse_proc_meminfo(text).unwrap();
+
+        assert!(mem.total_kb > 0);
+        assert!(mem.available_kb <= mem.total_kb);
+    }
 }

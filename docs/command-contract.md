@@ -18,9 +18,12 @@ HDC 路径优先级为显式 `hdc_path`、`PERFHARMONY_HDC`、`HDC_PATH`、Worke
 
 | 指标 | 首选命令 | 回退命令 | 解析器 | 当前状态 |
 | --- | --- | --- | --- | --- |
-| 系统 CPU | `hidumper --cpuusage` | `cat /proc/stat` 两拍差分 | `parse_hidumper_cpuusage` / `parse_proc_stat` | 合成 fixture；字段语义待 PC/Mobile 真机冻结 |
-| 系统内存 | `hidumper --mem` | `cat /proc/meminfo` | `parse_hidumper_mem_system` / `parse_proc_meminfo` | 合成 fixture；字段语义待真机冻结 |
-| 目标进程 | `ps -ef` + `top -n 1 -b` | 无 | `parse_ps_ef` + top 行解析 | 合成 fixture；真实列布局待真机冻结 |
+| 系统 CPU | `hidumper --cpuusage` | `cat /proc/stat` 两拍差分 | `parse_hidumper_cpuusage` / `parse_proc_stat` | PC 已确认；Mobile 待确认 |
+| 系统内存 | `hidumper --mem` | `cat /proc/meminfo` | `parse_hidumper_mem_system` / `parse_proc_meminfo` | PC 已确认；Mobile 待确认 |
+| 进程列表/CPU | `ps -ef` + `top -n 1 -b` | 无 | `parse_ps_ef` + top 行解析 | PC 已确认批量全量快照；Mobile 待确认 |
+| 进程内存 | 与系统内存复用同一次 `hidumper --mem` | 无 | `parse_hidumper_mem_processes` | PC 已确认 PSS/VSS/RSS/USS 表；Mobile 待确认 |
+
+Harmony PC 目标进程映射为 `working_set_mb = RSS / 1024`、`committed_memory_mb = VSS / 1024`。进程 CPU 或内存任一缺失时，该进程不进入本轮样本。`top_n_cpu` 复用同一轮 `ps`、`top` 和内存表，按同名进程聚合后按 CPU 降序截取，不增加 HDC 往返；正常 P0 路径仍为 4 次命令。
 
 P0 失败不写入 0。连续三轮没有任何 P0 指标时 Monitor 停止，并通过 `last_error` 暴露原因。
 
@@ -37,8 +40,8 @@ P0 失败不写入 0。连续三轮没有任何 P0 指标时 Monitor 停止，�
 
 ## 真机验收清单
 
-PC 和 Mobile 各需归档以下原始输出，并放入 `tests/fixtures/real/<device-kind>/`。当前仓库
-已创建 `harmony_pc/` 和 `harmony_mobile/` 目录，但尚未放入真实输出：
+PC 和 Mobile 各需归档以下原始输出，并放入 `tests/fixtures/real/<device-kind>/`。当前
+`harmony_pc/` 已有 HAD-W32 真机输出，`harmony_mobile/` 仍待补齐：
 
 ```text
 hdc list targets -v
@@ -46,7 +49,9 @@ param get const.product.type
 hidumper -h
 hidumper --cpuusage
 hidumper --mem
+hidumper --mem <pid>
 ps -ef
+top -n 1 -b
 cat /proc/stat
 cat /proc/meminfo
 cat /proc/net/dev
@@ -56,3 +61,9 @@ for p in /sys/class/thermal/thermal_zone*/temp; do cat "$p"; done
 ```
 
 还需要目标应用运行前后两次 CPU 快照，并记录系统版本、设备类型和 HDC 版本。真机到位后只更新 fixture、解析器和映射，不改变 `Monitor`、Worker 或 ZQ 的身份契约。
+
+## Worker 覆盖安装门禁
+
+覆盖安装 Worker 前先停止 Worker，并终止可执行路径位于当前安装目录
+`tools\hdc\hdc.exe` 的进程，否则 Windows 文件锁可能阻止安装程序覆盖 HDC 及其依赖文件。
+安装清理必须按完整可执行路径匹配，不能按进程名全局结束所有 `hdc.exe`。

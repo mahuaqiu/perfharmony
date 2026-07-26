@@ -1,5 +1,7 @@
 # 鸿蒙 PC 真机输出目录
 
-当前目录仅作为归档位置，尚未放入真实设备输出。拿到真机后，请按照上级
-`README.md` 和 `docs/command-contract.md` 的清单保存原始文本，并记录设备版本、
-产品类型、HDC 版本和采集时间。未经评审的输出不能用于宣称 P0 已完成。
+本目录已归档 HAD-W32（HUAWEI MateBook Pro）真机输出：HarmonyOS
+6.1.0.130，API 24，设备形态 `const.product.devicetype=2in1`。采集详情与已知
+兼容性问题见 `docs/real-device-test-report.md`。
+
+鸿蒙移动设备仍需在 `harmony_mobile/` 单独冻结输出，不能用本目录数据替代。
