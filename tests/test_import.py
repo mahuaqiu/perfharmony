@@ -2,6 +2,6 @@ import perfharmony
 
 
 def test_import_and_version():
-    assert perfharmony.__version__ == "0.2.0"
+    assert perfharmony.__version__ == "0.2.1"
     assert callable(perfharmony.list_targets)
     assert callable(perfharmony.list_sensors)
