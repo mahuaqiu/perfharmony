@@ -8,9 +8,11 @@
 //! 为 0，因此设备端命令绝不能带管道，过滤与解析全部在宿主机侧完成。
 //!
 //! 指标采用白名单制：真机实测恒 0 的字段（cluster0 / gpu 温度点 /
-//! npu_thermal / voltageNow / cpuNFrequency）不在白名单内，直接丢弃。
+//! cpuNFrequency）不在白名单内，直接丢弃；npu_thermal / voltageNow
+//! 在本真机恒 0（不支持），但官方透传 sysfs 留了口子，门控上报：
+//! 仅在有值（>0）设备上产出 NPU 温度 / 电压 / 功耗。
 //! 单位约定：系统内存 GB、进程内存 MB、频率 MHz、温度 ℃、电流 mA、
-//! 网络 KB/s。
+//! 电压 V、功耗 W、网络 KB/s。
 
 use std::collections::HashMap;
 
@@ -24,6 +26,9 @@ const KB_PER_MB: f64 = 1024.0;
 const KHZ_PER_MHZ: f64 = 1000.0;
 const HZ_PER_MHZ: f64 = 1_000_000.0;
 const BYTES_PER_KB: f64 = 1024.0;
+// sysfs voltage_now 标准单位为 µV（Linux power_supply ABI）。
+const UV_PER_V: f64 = 1_000_000.0;
+const MA_PER_A: f64 = 1000.0;
 
 /// 系统 CPU 使用率细分（SP_daemon 键 → 对外传感器键），单位 %。
 const CPU_USAGE_KEYS: [(&str, &str); 4] = [
@@ -33,7 +38,8 @@ const CPU_USAGE_KEYS: [(&str, &str); 4] = [
     ("TotalcpuidleUsage", "Harmony CPU Idle"),
 ];
 
-/// 温度点白名单（真机实测有效），单位 ℃；cluster0/gpu/npu_thermal 恒 0 不采。
+/// 温度点白名单（真机实测有效），单位 ℃；cluster0/gpu 恒 0 不采，
+/// npu_thermal 本真机恒 0 但口子保留，在白名单外门控上报。
 const TEMP_KEYS: [(&str, &str); 6] = [
     ("Battery", "Harmony Battery Temp"),
     ("soc_thermal", "Harmony SoC Temp"),
@@ -134,7 +140,8 @@ pub fn build_system_sensors(block: &HashMap<String, String>) -> HashMap<String, 
         }
     }
 
-    // 各核当前主频 cpuN_curFrequency（kHz→MHz）；仅部分核有值，空值核不上报。
+    // 各核当前主频 cpuN_curFrequency（kHz→MHz）仅用于计算平均主频；
+    // 逐核键信息量低且核数随设备动态变化，不单独上报。
     // cpuNFrequency 真机恒 0，不采。
     let mut freq_values: Vec<f64> = Vec::new();
     for (key, _) in block.iter() {
@@ -153,9 +160,7 @@ pub fn build_system_sensors(block: &HashMap<String, String>) -> HashMap<String, 
         if khz <= 0.0 {
             continue;
         }
-        let mhz = khz / KHZ_PER_MHZ;
-        add_sensor(&mut raw, &format!("Harmony CPU{core} Freq"), mhz, "MHz");
-        freq_values.push(mhz);
+        freq_values.push(khz / KHZ_PER_MHZ);
     }
     if !freq_values.is_empty() {
         let avg = freq_values.iter().sum::<f64>() / freq_values.len() as f64;
@@ -199,11 +204,26 @@ pub fn build_system_sensors(block: &HashMap<String, String>) -> HashMap<String, 
             add_sensor(&mut raw, sensor_key, value, "℃");
         }
     }
+    // NPU 温度（℃）：本真机恒 0（不支持），仅在有值设备上报。
+    if let Some(value) = get_f64(block, "npu_thermal").filter(|v| *v > 0.0) {
+        add_sensor(&mut raw, "Harmony NPU Temp", value, "℃");
+    }
 
-    // 电池电流（mA）；符号仅表示充放电方向，取绝对值。voltageNow 恒 0
-    // 算不出功率，不采。
-    if let Some(value) = get_f64(block, "currentNow") {
-        add_sensor(&mut raw, "Harmony Battery Current", value.abs(), "mA");
+    // 电池电流（mA）；符号仅表示充放电方向，取绝对值。
+    let current_ma = get_f64(block, "currentNow").map(f64::abs);
+    if let Some(value) = current_ma {
+        add_sensor(&mut raw, "Harmony Battery Current", value, "mA");
+    }
+    // 电池电压（sysfs voltage_now µV→V）与功耗（W = V × A）：
+    // 本真机 voltageNow 恒 0（不支持），仅在有值设备上报。
+    if let Some(voltage) = get_f64(block, "voltageNow")
+        .map(|uv| uv.abs() / UV_PER_V)
+        .filter(|v| *v > 0.0)
+    {
+        add_sensor(&mut raw, "Harmony Battery Voltage", voltage, "V");
+        if let Some(ma) = current_ma.filter(|v| *v > 0.0) {
+            add_sensor(&mut raw, "Harmony Power", voltage * ma / MA_PER_A, "W");
+        }
     }
 
     // 网络上下行速率（B/s→KB/s）。
@@ -225,13 +245,24 @@ pub fn build_system_sensors(block: &HashMap<String, String>) -> HashMap<String, 
     raw
 }
 
+/// 汇总归组键：`包名:子进程标识` 取冒号前的包名，与任务管理器按应用汇总一致；
+/// 非包名形态（如内核线程 kworker/0:1H）不含 `.`，保持原名不归组。
+pub fn bundle_base_name(name: &str) -> &str {
+    match name.split_once(':') {
+        Some((base, _)) if base.contains('.') && !base.contains('/') => base,
+        _ => name,
+    }
+}
+
 /// 把 -PKG 块转换为进程明细：主进程 + 竖线数组展开的子进程。
 ///
-/// 子进程无名字，命名为 `包名:pid`，与 bundle_base_name 归组规则兼容；
+/// 子进程无名字，命名为 `包名:pid`；ProcAppName 本身可能是子进程名
+/// （如 `com.xx:Native_xx`），取包名基名拼接，避免出现三段名；
 /// 内存取 pss（KB→MB），GPU 显存取 gpuPss/childGpuPss（KB→MB）。
 pub fn build_processes(block: &HashMap<String, String>) -> Option<Vec<ProcessInfo>> {
     let app_name = block.get("ProcAppName").map(|v| v.trim()).filter(|v| !v.is_empty())?;
     let main_pid: u32 = block.get("ProcId")?.trim().parse().ok()?;
+    let base_name = bundle_base_name(app_name);
 
     let child_ids = parse_pipe_u32(block.get("ChildProcId").map(String::as_str).unwrap_or(""));
     let child_cpu = parse_pipe_f64(
@@ -268,7 +299,7 @@ pub fn build_processes(block: &HashMap<String, String>) -> Option<Vec<ProcessInf
         }
         result.push(ProcessInfo {
             pid: *pid,
-            name: format!("{app_name}:{pid}"),
+            name: format!("{base_name}:{pid}"),
             cpu_percent: child_cpu
                 .get(index)
                 .copied()
@@ -430,10 +461,9 @@ mod tests {
                 < 1e-9
         );
 
-        // 主频 MHz：有值核上报，空值核（cpu3）不上报。
-        assert_eq!(sensors["Harmony CPU1 Freq"].value, 830.0);
-        assert!(!sensors.contains_key("Harmony CPU3 Freq"));
-        // 第二拍有值核：cpu0=418、cpu1=830、cpu2=1315。
+        // 主频 MHz：逐核键不再单独上报，只保留平均主频。
+        assert!(!sensors.keys().any(|key| key.starts_with("Harmony CPU") && key.ends_with(" Freq")));
+        // 第二拍有值核：cpu0=418、cpu1=830、cpu2=1315；空值核（cpu3）不参与平均。
         assert!((sensors["Harmony CPU Freq Avg"].value - (418.0 + 830.0 + 1315.0) / 3.0).abs() < 1e-9);
 
         // GPU / DDR MHz。
@@ -451,10 +481,31 @@ mod tests {
         assert_eq!(sensors["Harmony FPS"].value, 0.0);
         assert!(!sensors.contains_key("Harmony Refresh Rate"));
 
-        // 恒 0 字段不进白名单。
+        // 恒 0 字段：cluster0 不在白名单；npu_thermal/voltageNow 门控，
+        // 本真机恒 0 不产出（含衍生的功耗）。
         assert!(!sensors.keys().any(|key| key.contains("cluster0")));
         assert!(!sensors.keys().any(|key| key.contains("NPU")));
         assert!(!sensors.keys().any(|key| key.to_lowercase().contains("voltage")));
+        assert!(!sensors.contains_key("Harmony Power"));
+    }
+
+    #[test]
+    fn npu_temp_voltage_power_reported_when_device_supports() {
+        // 支持设备上 npu_thermal/voltageNow 有值，门控放行并换算单位：
+        // voltage_now µV→V，功耗 W = V × A。
+        let mut block = HashMap::new();
+        block.insert("npu_thermal".to_string(), "41.000000".to_string());
+        block.insert("voltageNow".to_string(), "3850000".to_string());
+        block.insert("currentNow".to_string(), "-200".to_string());
+        let sensors = build_system_sensors(&block);
+
+        assert_eq!(sensors["Harmony NPU Temp"].value, 41.0);
+        assert_eq!(sensors["Harmony NPU Temp"].unit, "℃");
+        assert!((sensors["Harmony Battery Voltage"].value - 3.85).abs() < 1e-9);
+        assert_eq!(sensors["Harmony Battery Voltage"].unit, "V");
+        assert_eq!(sensors["Harmony Battery Current"].value, 200.0);
+        assert!((sensors["Harmony Power"].value - 3.85 * 0.2).abs() < 1e-9);
+        assert_eq!(sensors["Harmony Power"].unit, "W");
     }
 
     #[test]
@@ -481,6 +532,25 @@ mod tests {
         let mut block = HashMap::new();
         block.insert("TotalcpuUsage".to_string(), "1.0".to_string());
         assert!(build_processes(&block).is_none());
+    }
+
+    #[test]
+    fn child_names_use_bundle_base_when_app_name_is_subprocess() {
+        // ProcAppName 本身可能是子进程名（带冒号后缀），子进程命名必须取包名基名，
+        // 避免出现 `包名:子进程名:pid` 三段名。
+        let mut block = HashMap::new();
+        block.insert(
+            "ProcAppName".to_string(),
+            "com.huawei.it.works:Native_libadapter4".to_string(),
+        );
+        block.insert("ProcId".to_string(), "2929".to_string());
+        block.insert("ChildProcId".to_string(), "43950|44831".to_string());
+
+        let processes = build_processes(&block).unwrap();
+        // 主进程保留 SP_daemon 上报的真实进程名，归组时按包名基名汇总。
+        assert_eq!(processes[0].name, "com.huawei.it.works:Native_libadapter4");
+        assert_eq!(processes[1].name, "com.huawei.it.works:43950");
+        assert_eq!(processes[2].name, "com.huawei.it.works:44831");
     }
 
     #[test]

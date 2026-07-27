@@ -14,7 +14,8 @@ use chrono::Utc;
 use crate::data::{AggregatedProcessInfo, ProcessInfo, Sample, SensorValue, SystemMetrics};
 use crate::hdc::{HdcClient, ShellStream, StreamEvent};
 use crate::parse::sp_daemon::{
-    build_processes, build_system_sensors, sp_daemon_command, SpStreamParser, FINISH_MARKER,
+    build_processes, build_system_sensors, bundle_base_name, sp_daemon_command, SpStreamParser,
+    FINISH_MARKER,
 };
 use crate::ring_buffer::RingBuffer;
 
@@ -380,15 +381,6 @@ fn sensor_value(
     key: &str,
 ) -> Option<f64> {
     raw.get(key).map(|sensor| sensor.value)
-}
-
-/// 汇总归组键：`包名:子进程标识` 取冒号前的包名，与任务管理器按应用汇总一致；
-/// 非包名形态（如内核线程 kworker/0:1H）不含 `.`，保持原名不归组。
-fn bundle_base_name(name: &str) -> &str {
-    match name.split_once(':') {
-        Some((base, _)) if base.contains('.') && !base.contains('/') => base,
-        _ => name,
-    }
 }
 
 fn aggregate_processes(processes: &[ProcessInfo]) -> Vec<AggregatedProcessInfo> {
