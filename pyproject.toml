@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "perfharmony"
-version = "0.2.1"
+version = "0.2.2"
 description = "HarmonyOS performance collector via HDC"
 requires-python = ">=3.10"
 license = { text = "MIT" }
