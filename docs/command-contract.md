@@ -62,6 +62,24 @@ for p in /sys/class/thermal/thermal_zone*/temp; do cat "$p"; done
 
 还需要目标应用运行前后两次 CPU 快照，并记录系统版本、设备类型和 HDC 版本。真机到位后只更新 fixture、解析器和映射，不改变 `Monitor`、Worker 或 ZQ 的身份契约。
 
+## SP_daemon 采集契约（0.2.0 起，0.3.0 增补）
+
+0.2.0 起设备侧唯一数据源为官方性能守护 `SP_daemon`，长跑流式命令：
+
+```text
+SP_daemon -N <拍数> -c -g -f -t -p -r -net -d [-PKG <包名> | -PID <pid>]
+```
+
+真机（2LQ0224125000197）实证的行为约束：
+
+- 设备端命令**禁止管道**：SP_daemon 检测到 stdout 非终端会静默退出（exit 0），过滤解析全部在宿主机侧完成。
+- 一次采集只能带**一个** `-PKG` **或**一个 `-PID`，重复传参无输出，逗号分隔会把整串当包名。
+- `-PKG` 在设备端是**前缀匹配**：`-PKG com.a.test` 会把 `com.a.test.abc` 的进程一并采集进主/子进程列表。宿主侧在模糊模式下按 `ps -ef` 的 pid→进程名映射做精确过滤兜底（`bundle_base_name` 全等比较，映射缺失的新进程保留）。
+- `-PID` 为官方参数（真机验证可用），单进程精准采集，不聚合子进程（`ChildProcId=NA`）。
+- 模糊模式下宿主每 30s 额外执行一次 `ps -ef` 短命令（15s 超时）刷新映射；流式采集不持 target 锁，短命令可并发，属于契约内的命令预算。
+- `SP_daemon -stop` 是设备级清理：采集启动前后各执行一次；对并发实例的停止范围未验证，多实例场景需先确认。
+- 进程内存口径为**常驻内存** `pss − swapPss`（KB→MB，`swapPss` 缺失回退 `pss`），与任务管理器的"真驻留物理内存"口径对齐；主进程细分 `nativeHeapPss/graphicPss/arktsHeapPss/swapPss` 以 `Harmony * Pss`（MB）写入 `hwinfo_raw` 供对数。
+
 ## Worker 覆盖安装门禁
 
 覆盖安装 Worker 前先停止 Worker，并终止可执行路径位于当前安装目录
