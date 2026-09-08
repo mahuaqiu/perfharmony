@@ -30,6 +30,10 @@ const STARTUP_TIMEOUT: Duration = Duration::from_secs(20);
 const STALL_TIMEOUT: Duration = Duration::from_secs(30);
 /// 不限时长时的默认总拍数（24 小时）。
 const DEFAULT_TOTAL_SECONDS: u32 = 86_400;
+/// ps -ef 进程名映射刷新周期（模糊模式防同前缀包误抓）。
+const PID_NAMES_REFRESH: Duration = Duration::from_secs(30);
+/// ps -ef 短命令超时；流式采集不持 target 锁，短命令可并发执行。
+const PS_EF_TIMEOUT_SECS: u64 = 15;
 
 /// 长跑行流抽象，测试桩靠它注入 fixture。
 pub(crate) trait LineStream: Send {
@@ -59,8 +63,7 @@ pub(crate) trait MonitorClient: Send + Sync {
         cancel: &AtomicBool,
     ) -> Result<String, crate::error::Error>;
 
-    fn open_stream(&self, udid: &str, command: &str)
-        -> Result<Self::Stream, crate::error::Error>;
+    fn open_stream(&self, udid: &str, command: &str) -> Result<Self::Stream, crate::error::Error>;
 }
 
 impl MonitorClient for HdcClient {
@@ -76,11 +79,7 @@ impl MonitorClient for HdcClient {
         HdcClient::shell_with_cancel(self, udid, command, timeout_secs, cancel)
     }
 
-    fn open_stream(
-        &self,
-        udid: &str,
-        command: &str,
-    ) -> Result<Self::Stream, crate::error::Error> {
+    fn open_stream(&self, udid: &str, command: &str) -> Result<Self::Stream, crate::error::Error> {
         HdcClient::shell_stream(self, udid, command)
     }
 }
@@ -235,6 +234,13 @@ pub(crate) fn run_monitor<C: MonitorClient>(
         &inner.stop,
     );
 
+    // 模糊模式（-PKG）先取一次 pid→进程名映射，供逐拍精确过滤使用。
+    let mut pid_names = if config.package.is_some() {
+        fetch_pid_names(&config, &client, &inner.stop)
+    } else {
+        std::collections::HashMap::new()
+    };
+
     // 首拍差分基线要丢弃，总拍数 = 时长 + 1。
     let total = config
         .duration
@@ -246,7 +252,14 @@ pub(crate) fn run_monitor<C: MonitorClient>(
     if !inner.is_stopped() {
         match client.open_stream(&config.udid, &command) {
             Ok(mut stream) => {
-                run_stream_loop(&config, &inner, &mut stream, started);
+                run_stream_loop(
+                    &config,
+                    &client,
+                    &inner,
+                    &mut stream,
+                    started,
+                    &mut pid_names,
+                );
                 stream.stop();
             }
             Err(error) => inner.set_error(format!("启动 SP_daemon 采集流失败: {error}")),
@@ -265,19 +278,27 @@ pub(crate) fn run_monitor<C: MonitorClient>(
     inner.finish();
 }
 
-fn run_stream_loop<S: LineStream>(
+fn run_stream_loop<C: MonitorClient>(
     config: &MonitorConfigOwned,
+    client: &C,
     inner: &MonitorInner,
-    stream: &mut S,
+    stream: &mut C::Stream,
     started: Instant,
+    pid_names: &mut std::collections::HashMap<u32, String>,
 ) {
     let step = (config.interval.round() as u64).max(1);
     let mut parser = SpStreamParser::new();
     let mut block_index = 0u64;
     let mut saw_order = false;
     let mut last_line_at = Instant::now();
+    let mut last_pid_check = Instant::now();
 
     while !inner.is_stopped() {
+        // 模糊模式按 30s 节奏刷新 pid→进程名映射（采集期间新拉起的进程也要能识别）。
+        if config.package.is_some() && last_pid_check.elapsed() >= PID_NAMES_REFRESH {
+            *pid_names = fetch_pid_names(config, client, &inner.stop);
+            last_pid_check = Instant::now();
+        }
         match stream.next_line(POLL_STEP) {
             StreamEvent::Line(line) => {
                 last_line_at = Instant::now();
@@ -286,7 +307,15 @@ fn run_stream_loop<S: LineStream>(
                     saw_order = true;
                 }
                 if let Some(block) = parser.push_line(&line) {
-                    handle_block(inner, &block, started, step, &mut block_index);
+                    handle_block(
+                        inner,
+                        &block,
+                        started,
+                        step,
+                        &mut block_index,
+                        config.package.as_deref(),
+                        pid_names,
+                    );
                 }
                 if trimmed == FINISH_MARKER {
                     return;
@@ -308,16 +337,57 @@ fn run_stream_loop<S: LineStream>(
             }
             StreamEvent::Closed => {
                 if let Some(block) = parser.finish() {
-                    handle_block(inner, &block, started, step, &mut block_index);
+                    handle_block(
+                        inner,
+                        &block,
+                        started,
+                        step,
+                        &mut block_index,
+                        config.package.as_deref(),
+                        pid_names,
+                    );
                 }
                 if !saw_order {
-                    inner.set_error(
-                        "SP_daemon 未产出任何数据（流提前结束）".to_string(),
-                    );
+                    inner.set_error("SP_daemon 未产出任何数据（流提前结束）".to_string());
                 }
                 return;
             }
         }
+    }
+}
+
+/// 模糊模式（-PKG）宿主侧精确过滤兜底：设备端按前缀匹配，同前缀包
+/// （com.a.test / com.a.test.abc）会混入子进程列表。规则：
+/// 主进程按真实进程名取包名基名全等比较；子进程以 ps -ef 映射为准，
+/// 映射缺失（新进程）保留，避免误杀。
+pub(crate) fn filter_processes_by_package(
+    processes: Vec<ProcessInfo>,
+    package: &str,
+    pid_names: &std::collections::HashMap<u32, String>,
+) -> Vec<ProcessInfo> {
+    let target = package.to_string();
+    let mut kept = Vec::with_capacity(processes.len());
+    for (index, process) in processes.into_iter().enumerate() {
+        let real_name = if index == 0 {
+            process.name.clone()
+        } else {
+            pid_names.get(&process.pid).cloned().unwrap_or_default()
+        };
+        if real_name.is_empty() || bundle_base_name(&real_name) == target {
+            kept.push(process);
+        }
+    }
+    kept
+}
+
+fn fetch_pid_names<C: MonitorClient>(
+    config: &MonitorConfigOwned,
+    client: &C,
+    cancel: &AtomicBool,
+) -> std::collections::HashMap<u32, String> {
+    match client.shell(&config.udid, "ps -ef", PS_EF_TIMEOUT_SECS, cancel) {
+        Ok(text) => crate::parse::ps::parse_ps_ef(&text).into_iter().collect(),
+        Err(_) => std::collections::HashMap::new(),
     }
 }
 
@@ -327,6 +397,8 @@ fn handle_block(
     started: Instant,
     step: u64,
     block_index: &mut u64,
+    package: Option<&str>,
+    pid_names: &std::collections::HashMap<u32, String>,
 ) {
     let index = *block_index;
     *block_index += 1;
@@ -338,7 +410,7 @@ fn handle_block(
     if (index - 1) % step != 0 {
         return;
     }
-    if let Some(sample) = sample_from_block(inner, block, started.elapsed()) {
+    if let Some(sample) = sample_from_block(inner, block, started.elapsed(), package, pid_names) {
         inner.push(sample);
     }
 }
@@ -347,9 +419,18 @@ fn sample_from_block(
     inner: &MonitorInner,
     block: &std::collections::HashMap<String, String>,
     elapsed: Duration,
+    package: Option<&str>,
+    pid_names: &std::collections::HashMap<u32, String>,
 ) -> Option<Sample> {
     let raw = build_system_sensors(block);
-    let processes = build_processes(block);
+    let mut processes = build_processes(block);
+    if let (Some(package), Some(list)) = (package, processes.as_mut()) {
+        *list = filter_processes_by_package(std::mem::take(list), package, pid_names);
+        if list.is_empty() {
+            // 全部被过滤时不产出进程数据，仅保留系统指标。
+            processes = None;
+        }
+    }
     if raw.is_empty() && processes.is_none() {
         return None;
     }
@@ -376,10 +457,7 @@ fn sample_from_block(
     })
 }
 
-fn sensor_value(
-    raw: &std::collections::HashMap<String, SensorValue>,
-    key: &str,
-) -> Option<f64> {
+fn sensor_value(raw: &std::collections::HashMap<String, SensorValue>, key: &str) -> Option<f64> {
     raw.get(key).map(|sensor| sensor.value)
 }
 
@@ -449,14 +527,20 @@ mod tests {
 
     struct FakeClient {
         lines: Vec<String>,
+        shell_output: String,
         shell_calls: Mutex<Vec<String>>,
         stream_commands: Mutex<Vec<String>>,
     }
 
     impl FakeClient {
         fn new(text: &str) -> Self {
+            Self::with_shell_output(text, "")
+        }
+
+        fn with_shell_output(text: &str, shell_output: &str) -> Self {
             Self {
                 lines: text.lines().map(str::to_string).collect(),
+                shell_output: shell_output.to_string(),
                 shell_calls: Mutex::new(Vec::new()),
                 stream_commands: Mutex::new(Vec::new()),
             }
@@ -480,7 +564,7 @@ mod tests {
                 .lock()
                 .expect("fake shell mutex poisoned")
                 .push(command.to_string());
-            Ok(String::new())
+            Ok(self.shell_output.clone())
         }
 
         fn open_stream(&self, _udid: &str, command: &str) -> Result<Self::Stream, Error> {
@@ -575,7 +659,7 @@ mod tests {
 
         assert_eq!(
             fake.shell_calls.lock().unwrap().as_slice(),
-            ["SP_daemon -stop", "SP_daemon -stop"]
+            ["SP_daemon -stop", "ps -ef", "SP_daemon -stop"]
         );
         assert_eq!(
             fake.stream_commands.lock().unwrap().as_slice(),
@@ -733,5 +817,92 @@ mod tests {
         assert_eq!(bundle_base_name("com.app"), "com.app");
         assert_eq!(bundle_base_name("kworker/0:1H"), "kworker/0:1H");
         assert_eq!(bundle_base_name("0:1H"), "0:1H");
+    }
+
+    fn make_process(pid: u32, name: &str) -> ProcessInfo {
+        ProcessInfo {
+            pid,
+            name: name.to_string(),
+            cpu_percent: 0.0,
+            working_set_mb: 1.0,
+            committed_memory_mb: 0.0,
+            gpu_percent: 0.0,
+            gpu_memory_mb: 0.0,
+            handle_count: 0,
+        }
+    }
+
+    #[test]
+    fn package_filter_drops_same_prefix_bundle_children() {
+        let mut pid_names = std::collections::HashMap::new();
+        pid_names.insert(200u32, "com.a.test:render".to_string());
+        pid_names.insert(300u32, "com.a.test.abc".to_string());
+        // pid 400 不在映射里（新进程），应保留。
+        let filtered = super::filter_processes_by_package(
+            vec![
+                make_process(100, "com.a.test"),
+                make_process(200, "com.a.test:200"),
+                make_process(300, "com.a.test:300"),
+                make_process(400, "com.a.test:400"),
+            ],
+            "com.a.test",
+            &pid_names,
+        );
+        let pids: Vec<u32> = filtered.iter().map(|item| item.pid).collect();
+        assert_eq!(pids, vec![100, 200, 400]);
+    }
+
+    #[test]
+    fn package_filter_drops_foreign_main_process() {
+        // SP_daemon 前缀匹配可能把 com.a.test.abc 当主进程上报，必须整条丢弃；
+        // 其子进程的真实名字来自 ps -ef 映射，映射里能定位到同前缀包则一并丢弃。
+        let mut pid_names = std::collections::HashMap::new();
+        pid_names.insert(2u32, "com.a.test.abc:2".to_string());
+        let filtered = super::filter_processes_by_package(
+            vec![
+                make_process(1, "com.a.test.abc"),
+                make_process(2, "com.a.test.abc:2"),
+            ],
+            "com.a.test",
+            &pid_names,
+        );
+        assert!(filtered.is_empty());
+    }
+
+    #[test]
+    fn fuzzy_mode_filters_contaminated_children() {
+        // -PKG com.a.test：设备端前缀匹配混入 com.a.test.abc（pid 300），
+        // ps -ef 映射后必须过滤，只留主进程 + 子进程 200。
+        let ps_ef = "UID PID PPID C STIME TTY TIME CMD\n\
+                     u200 200 1 0 10:00 ? 0:00 com.a.test:render\n\
+                     u200 300 1 0 10:00 ? 0:00 com.a.test.abc\n";
+        let mut lines = Vec::new();
+        for shot in 0..3 {
+            lines.push("order:0 TotalcpuUsage=1.000000".to_string());
+            lines.push("order:1 memTotal=1048576".to_string());
+            lines.push("order:2 memAvailable=524288".to_string());
+            lines.push(format!("order:3 timestamp={}", 1000 + shot));
+            lines.push("order:4 ProcAppName=com.a.test".to_string());
+            lines.push("order:5 ProcId=100".to_string());
+            lines.push("order:6 ChildProcId=200|300|".to_string());
+            lines.push("order:7 childPss=200:50|300:70|".to_string());
+            lines.push(String::new());
+        }
+        lines.push(super::FINISH_MARKER.to_string());
+        let client = FakeClient::with_shell_output(&lines.join("\n"), ps_ef);
+        let inner = Arc::new(MonitorInner::new());
+        run_monitor(
+            config(1.0, Some(10.0), Some("com.a.test")),
+            client,
+            inner.clone(),
+        );
+
+        let sample = &inner.drain().samples[0];
+        let processes = sample.processes.as_ref().unwrap();
+        let pids: Vec<u32> = processes.iter().map(|item| item.pid).collect();
+        assert_eq!(pids, vec![100, 200]);
+        let aggregated = sample.aggregated.as_ref().unwrap();
+        assert_eq!(aggregated.len(), 1);
+        assert_eq!(aggregated[0].pids, vec![100, 200]);
     }
 }
