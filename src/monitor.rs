@@ -96,6 +96,9 @@ pub(crate) struct MonitorConfigOwned {
     pub package: Option<String>,
     /// 单进程精准采集：SP_daemon -PID，与 package 互斥。
     pub pid: Option<u32>,
+    /// 是否由 Monitor 自动执行设备级 SP_daemon -stop 清理（启动前+结束后）。
+    /// 多实例并发采集（多包名）时必须关闭，改由上层统一协调清理。
+    pub auto_cleanup: bool,
 }
 
 #[derive(Debug)]
@@ -229,12 +232,15 @@ pub(crate) fn run_monitor<C: MonitorClient>(
 
     // 启动前清理上次残留的 SP_daemon：SP_daemon 单例，残留存活会把新实例 Signal 15 顶掉；
     // 非 root shell 下 pkill/kill 对它 Permission denied，唯一有效的是官方 -stop（真机实证）。
-    let _ = client.shell(
-        &config.udid,
-        "SP_daemon -stop",
-        CLEANUP_TIMEOUT_SECS,
-        &inner.stop,
-    );
+    // -stop 是设备级清理，多实例并发时由上层统一调用一次，Monitor 内不再自动执行。
+    if config.auto_cleanup {
+        let _ = client.shell(
+            &config.udid,
+            "SP_daemon -stop",
+            CLEANUP_TIMEOUT_SECS,
+            &inner.stop,
+        );
+    }
 
     // 模糊模式（-PKG）先取一次 pid→进程名映射，供逐拍精确过滤使用。
     let mut pid_names = if config.package.is_some() {
@@ -269,14 +275,16 @@ pub(crate) fn run_monitor<C: MonitorClient>(
     }
 
     // 结束后用官方 -stop 收掉设备端 SP_daemon（杀本地 hdc 不会带走它）；
-    // stop() 已置位也要执行，故用独立 cancel。
-    let cleanup_cancel = AtomicBool::new(false);
-    let _ = client.shell(
-        &config.udid,
-        "SP_daemon -stop",
-        CLEANUP_TIMEOUT_SECS,
-        &cleanup_cancel,
-    );
+    // stop() 已置位也要执行，故用独立 cancel。auto_cleanup=false 时由上层统一清理。
+    if config.auto_cleanup {
+        let cleanup_cancel = AtomicBool::new(false);
+        let _ = client.shell(
+            &config.udid,
+            "SP_daemon -stop",
+            CLEANUP_TIMEOUT_SECS,
+            &cleanup_cancel,
+        );
+    }
     inner.finish();
 }
 
@@ -589,6 +597,7 @@ mod tests {
             duration,
             package: package.map(str::to_string),
             pid: None,
+            auto_cleanup: true,
         }
     }
 

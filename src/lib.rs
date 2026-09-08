@@ -281,6 +281,24 @@ fn parse_targets_for_test(output: &str) -> Vec<HashMap<String, String>> {
         .collect()
 }
 
+/// 设备级清理：收掉设备端所有 SP_daemon 采集实例（官方 -stop）。
+///
+/// 供多实例并发采集（多包名）的上层在启动前/全部结束后统一调用；
+/// 单实例 Monitor 默认自动清理，无需调用本函数。
+#[pyfunction]
+#[pyo3(signature = (udid, hdc_path=None))]
+fn stop_daemon(udid: String, hdc_path: Option<String>) -> PyResult<()> {
+    if udid.trim().is_empty() {
+        return Err(pyo3::exceptions::PyValueError::new_err("udid 不能为空"));
+    }
+    let client = HdcClient::from_optional_path(hdc_path).map_err(error::to_py_err)?;
+    let cancel = std::sync::atomic::AtomicBool::new(false);
+    client
+        .shell_with_cancel(&udid, "SP_daemon -stop", 10, &cancel)
+        .map_err(error::to_py_err)?;
+    Ok(())
+}
+
 #[pyfunction]
 #[pyo3(signature = (udid, hdc_path=None))]
 fn list_processes(udid: String, hdc_path: Option<String>) -> PyResult<Vec<(u32, String)>> {
@@ -427,7 +445,8 @@ pub struct PyMonitor {
 impl PyMonitor {
     #[new]
     // 0.3.0：-PKG 单应用（含子进程）与 -PID 单进程精准模式二选一。
-    #[pyo3(signature = (udid, interval=1.0, duration=None, hdc_path=None, package=None, pid=None))]
+    #[pyo3(signature = (udid, interval=1.0, duration=None, hdc_path=None, package=None, pid=None, auto_cleanup=None))]
+    #[allow(clippy::too_many_arguments)]
     fn new(
         udid: String,
         interval: f64,
@@ -435,6 +454,7 @@ impl PyMonitor {
         hdc_path: Option<String>,
         package: Option<String>,
         pid: Option<u32>,
+        auto_cleanup: Option<bool>,
     ) -> PyResult<Self> {
         if udid.trim().is_empty() {
             return Err(pyo3::exceptions::PyValueError::new_err("udid 不能为空"));
@@ -474,6 +494,8 @@ impl PyMonitor {
                 duration,
                 package,
                 pid,
+                // 多实例并发采集时由上层传 false 并统一协调 -stop 清理。
+                auto_cleanup: auto_cleanup.unwrap_or(true),
             }),
             handle: std::sync::Mutex::new(None),
         })
@@ -561,6 +583,7 @@ fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(list_targets, m)?)?;
     m.add_function(wrap_pyfunction!(parse_targets_for_test, m)?)?;
     m.add_function(wrap_pyfunction!(list_processes, m)?)?;
+    m.add_function(wrap_pyfunction!(stop_daemon, m)?)?;
     m.add_function(wrap_pyfunction!(list_sensors, m)?)?;
     m.add_function(wrap_pyfunction!(probe, m)?)?;
     Ok(())

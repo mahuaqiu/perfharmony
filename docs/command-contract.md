@@ -77,7 +77,12 @@ SP_daemon -N <拍数> -c -g -f -t -p -r -net -d [-PKG <包名> | -PID <pid>]
 - `-PKG` 在设备端是**前缀匹配**：`-PKG com.a.test` 会把 `com.a.test.abc` 的进程一并采集进主/子进程列表。宿主侧在模糊模式下按 `ps -ef` 的 pid→进程名映射做精确过滤兜底（`bundle_base_name` 全等比较，映射缺失的新进程保留）。
 - `-PID` 为官方参数（真机验证可用），单进程精准采集，不聚合子进程（`ChildProcId=NA`）。
 - 模糊模式下宿主每 30s 额外执行一次 `ps -ef` 短命令（15s 超时）刷新映射；流式采集不持 target 锁，短命令可并发，属于契约内的命令预算。
-- `SP_daemon -stop` 是设备级清理：采集启动前后各执行一次；对并发实例的停止范围未验证，多实例场景需先确认。
+- `SP_daemon -stop` 是设备级清理：采集启动前后各执行一次。
+- **SP_daemon 为设备级硬单例（真机实证）**：同一设备同一时刻只能存在一个采集流，
+  新实例启动会把旧实例顶掉（旧流静默中断，无错误输出）。因此「多应用同时采集」
+  不可行，平台侧已按单应用约束实现。Monitor 提供 `auto_cleanup=False` 与模块级
+  `stop_daemon(udid)`，供未来需要协调多实例清理的特殊场景使用（当前 worker 不使用，
+  单实例保持默认 auto_cleanup=True）。
 - 进程内存口径为**常驻内存** `pss − swapPss`（KB→MB，`swapPss` 缺失回退 `pss`），与任务管理器的"真驻留物理内存"口径对齐；主进程细分 `nativeHeapPss/graphicPss/arktsHeapPss/swapPss` 以 `Harmony * Pss`（MB）写入 `hwinfo_raw` 供对数。
 
 ## Worker 覆盖安装门禁
