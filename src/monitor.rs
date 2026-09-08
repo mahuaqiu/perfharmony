@@ -94,6 +94,8 @@ pub(crate) struct MonitorConfigOwned {
     pub duration: Option<f64>,
     /// 单应用采集：SP_daemon -PKG 自动覆盖主进程 + 全部子进程。
     pub package: Option<String>,
+    /// 单进程精准采集：SP_daemon -PID，与 package 互斥。
+    pub pid: Option<u32>,
 }
 
 #[derive(Debug)]
@@ -247,7 +249,7 @@ pub(crate) fn run_monitor<C: MonitorClient>(
         .map(|value| (value.ceil() as u32).saturating_add(1))
         .unwrap_or(DEFAULT_TOTAL_SECONDS)
         .max(2);
-    let command = sp_daemon_command(total, config.package.as_deref());
+    let command = sp_daemon_command(total, config.package.as_deref(), config.pid);
 
     if !inner.is_stopped() {
         match client.open_stream(&config.udid, &command) {
@@ -586,6 +588,7 @@ mod tests {
             interval,
             duration,
             package: package.map(str::to_string),
+            pid: None,
         }
     }
 

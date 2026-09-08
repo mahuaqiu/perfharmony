@@ -66,6 +66,45 @@ def test_process_filter_removed_in_020():
     assert not hasattr(perfharmony, "ProcessFilter")
 
 
+def _pid_param_supported() -> bool:
+    """0.3.0 wheel 才有 pid 参数；旧 wheel 安装态下跳过相关契约。"""
+    if not _HAS_MONITOR:
+        return False
+    try:
+        perfharmony.Monitor(udid="TEST_UDID_FAKE", interval=2.0, pid=1)
+    except TypeError:
+        return False
+    except ValueError:
+        return True
+    return True
+
+
+_PID_PARAM = _pid_param_supported()
+
+
+@pytest.mark.skipif(not _PID_PARAM, reason="等待 0.3.0 wheel 提供 pid 参数")
+def test_monitor_accepts_pid():
+    """pid 传入正整数可构造（-PID 精准模式）。"""
+    monitor = perfharmony.Monitor(udid="TEST_UDID_FAKE", interval=2.0, pid=123)
+    assert monitor is not None
+
+
+@pytest.mark.skipif(not _PID_PARAM, reason="等待 0.3.0 wheel 提供 pid 参数")
+def test_monitor_rejects_zero_pid():
+    """pid 必须为正整数。"""
+    with pytest.raises(ValueError):
+        perfharmony.Monitor(udid="TEST_UDID_FAKE", interval=2.0, pid=0)
+
+
+@pytest.mark.skipif(not _PID_PARAM, reason="等待 0.3.0 wheel 提供 pid 参数")
+def test_pid_and_package_mutually_exclusive():
+    """package 与 pid 只能二选一（一次采集一个 -PKG 或一个 -PID）。"""
+    with pytest.raises(ValueError):
+        perfharmony.Monitor(
+            udid="TEST_UDID_FAKE", interval=2.0, package="com.example.app", pid=123
+        )
+
+
 # ---------------------------------------------------------------------------
 # Monitor 上下文管理器协议
 # ---------------------------------------------------------------------------

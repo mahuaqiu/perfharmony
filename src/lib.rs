@@ -301,15 +301,15 @@ fn list_sensors(udid: String, hdc_path: Option<String>) -> PyResult<Vec<String>>
         return Err(pyo3::exceptions::PyValueError::new_err("udid 不能为空"));
     }
     let client = HdcClient::from_optional_path(hdc_path).map_err(error::to_py_err)?;
-    let command = sp_daemon_command(2, None);
-    let text = client.shell(&udid, &command, 30).map_err(error::to_py_err)?;
+    let command = sp_daemon_command(2, None, None);
+    let text = client
+        .shell(&udid, &command, 30)
+        .map_err(error::to_py_err)?;
     let blocks = parse_blocks(&text);
     let Some(block) = blocks.last() else {
         return Ok(Vec::new());
     };
-    let mut keys = build_system_sensors(block)
-        .into_keys()
-        .collect::<Vec<_>>();
+    let mut keys = build_system_sensors(block).into_keys().collect::<Vec<_>>();
     keys.sort();
     Ok(keys)
 }
@@ -359,7 +359,7 @@ fn probe(udid: String, hdc_path: Option<String>, py: Python<'_>) -> PyResult<Py<
 
     // SP_daemon 探测：能解析出块且末拍有白名单传感器即可用。
     // 注意设备端命令绝不能接管道（SP_daemon 检测到非终端会静默不输出）。
-    let sp_status = match client.shell(&udid, &sp_daemon_command(2, None), 30) {
+    let sp_status = match client.shell(&udid, &sp_daemon_command(2, None, None), 30) {
         Ok(text) => {
             let blocks = parse_blocks(&text);
             match blocks.last() {
@@ -426,14 +426,15 @@ pub struct PyMonitor {
 #[pymethods]
 impl PyMonitor {
     #[new]
-    // 0.2.0：唯一数据源 SP_daemon，指标白名单制无需逐项开关；一次采集限一个应用。
-    #[pyo3(signature = (udid, interval=1.0, duration=None, hdc_path=None, package=None))]
+    // 0.3.0：-PKG 单应用（含子进程）与 -PID 单进程精准模式二选一。
+    #[pyo3(signature = (udid, interval=1.0, duration=None, hdc_path=None, package=None, pid=None))]
     fn new(
         udid: String,
         interval: f64,
         duration: Option<f64>,
         hdc_path: Option<String>,
         package: Option<String>,
+        pid: Option<u32>,
     ) -> PyResult<Self> {
         if udid.trim().is_empty() {
             return Err(pyo3::exceptions::PyValueError::new_err("udid 不能为空"));
@@ -448,10 +449,21 @@ impl PyMonitor {
                 "duration 必须大于 0",
             ));
         }
-        if package.as_ref().is_some_and(|value| value.trim().is_empty()) {
+        if package
+            .as_ref()
+            .is_some_and(|value| value.trim().is_empty())
+        {
             return Err(pyo3::exceptions::PyValueError::new_err(
                 "package 不能为空字符串",
             ));
+        }
+        if package.is_some() && pid.is_some() {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "package 与 pid 只能二选一",
+            ));
+        }
+        if pid.is_some_and(|value| value == 0) {
+            return Err(pyo3::exceptions::PyValueError::new_err("pid 必须为正整数"));
         }
         Ok(Self {
             inner: std::sync::Arc::new(MonitorInner::new()),
@@ -461,6 +473,7 @@ impl PyMonitor {
                 interval,
                 duration,
                 package,
+                pid,
             }),
             handle: std::sync::Mutex::new(None),
         })

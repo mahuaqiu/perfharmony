@@ -298,7 +298,6 @@ impl Drop for ShellStream {
     }
 }
 
-
 fn join_pipe_reader(handle: Option<thread::JoinHandle<Vec<u8>>>) -> Vec<u8> {
     handle
         .and_then(|reader| reader.join().ok())

@@ -50,11 +50,16 @@ const TEMP_KEYS: [(&str, &str); 6] = [
 ];
 
 /// 构造 SP_daemon 长跑采集命令；`total_samples` 为总拍数（1 拍 = 1 秒）。
-pub fn sp_daemon_command(total_samples: u32, package: Option<&str>) -> String {
+/// package（-PKG）与 pid（-PID）互斥，由上层校验；真机实证一次只能带其一。
+pub fn sp_daemon_command(total_samples: u32, package: Option<&str>, pid: Option<u32>) -> String {
     let mut command = format!("SP_daemon -N {total_samples} -c -g -f -t -p -r -net -d");
     if let Some(package) = package {
         command.push_str(" -PKG ");
         command.push_str(package);
+    }
+    if let Some(pid) = pid {
+        command.push_str(" -PID ");
+        command.push_str(&pid.to_string());
     }
     command
 }
@@ -174,7 +179,12 @@ pub fn build_system_sensors(block: &HashMap<String, String>) -> HashMap<String, 
         add_sensor(&mut raw, "Harmony Mem Total", total / KB_PER_GB, "GB");
     }
     if let Some(available) = available_kb {
-        add_sensor(&mut raw, "Harmony Mem Available", available / KB_PER_GB, "GB");
+        add_sensor(
+            &mut raw,
+            "Harmony Mem Available",
+            available / KB_PER_GB,
+            "GB",
+        );
     }
     if let (Some(total), Some(available)) = (total_kb, available_kb) {
         add_sensor(
@@ -281,7 +291,10 @@ fn resident_kb(block: &HashMap<String, String>, pss_key: &str, swap_key: &str) -
 /// （如 `com.xx:Native_xx`），取包名基名拼接，避免出现三段名；
 /// 内存取常驻口径 pss−swapPss（KB→MB），GPU 显存取 gpuPss/childGpuPss（KB→MB）。
 pub fn build_processes(block: &HashMap<String, String>) -> Option<Vec<ProcessInfo>> {
-    let app_name = block.get("ProcAppName").map(|v| v.trim()).filter(|v| !v.is_empty())?;
+    let app_name = block
+        .get("ProcAppName")
+        .map(|v| v.trim())
+        .filter(|v| !v.is_empty())?;
     let main_pid: u32 = block.get("ProcId")?.trim().parse().ok()?;
     let base_name = bundle_base_name(app_name);
 
@@ -293,11 +306,9 @@ pub fn build_processes(block: &HashMap<String, String>) -> Option<Vec<ProcessInf
             .unwrap_or(""),
     );
     let child_pss = parse_child_map(block.get("childPss").map(String::as_str).unwrap_or(""));
-    let child_swap_pss = parse_child_map(
-        block.get("childSwapPss").map(String::as_str).unwrap_or(""),
-    );
-    let child_gpu_pss =
-        parse_child_map(block.get("childGpuPss").map(String::as_str).unwrap_or(""));
+    let child_swap_pss =
+        parse_child_map(block.get("childSwapPss").map(String::as_str).unwrap_or(""));
+    let child_gpu_pss = parse_child_map(block.get("childGpuPss").map(String::as_str).unwrap_or(""));
 
     let mut result = vec![ProcessInfo {
         pid: main_pid,
@@ -409,7 +420,11 @@ fn get_f64(block: &HashMap<String, String>, key: &str) -> Option<f64> {
 }
 
 fn add_sensor(raw: &mut HashMap<String, SensorValue>, key: &str, value: f64, unit: &str) {
-    let value = if value.is_finite() { value.max(0.0) } else { 0.0 };
+    let value = if value.is_finite() {
+        value.max(0.0)
+    } else {
+        0.0
+    };
     raw.insert(
         key.to_string(),
         SensorValue {
@@ -484,15 +499,18 @@ mod tests {
         assert_eq!(sensors["Harmony Mem Total"].unit, "GB");
         assert!((sensors["Harmony Mem Total"].value - 32680648.0 / 1024.0 / 1024.0).abs() < 1e-9);
         assert!(
-            (sensors["Harmony Mem Used"].value - (32680648.0 - 20165632.0) / 1024.0 / 1024.0)
-                .abs()
+            (sensors["Harmony Mem Used"].value - (32680648.0 - 20165632.0) / 1024.0 / 1024.0).abs()
                 < 1e-9
         );
 
         // 主频 MHz：逐核键不再单独上报，只保留平均主频。
-        assert!(!sensors.keys().any(|key| key.starts_with("Harmony CPU") && key.ends_with(" Freq")));
+        assert!(!sensors
+            .keys()
+            .any(|key| key.starts_with("Harmony CPU") && key.ends_with(" Freq")));
         // 第二拍有值核：cpu0=418、cpu1=830、cpu2=1315；空值核（cpu3）不参与平均。
-        assert!((sensors["Harmony CPU Freq Avg"].value - (418.0 + 830.0 + 1315.0) / 3.0).abs() < 1e-9);
+        assert!(
+            (sensors["Harmony CPU Freq Avg"].value - (418.0 + 830.0 + 1315.0) / 3.0).abs() < 1e-9
+        );
 
         // GPU / DDR MHz。
         assert_eq!(sensors["Harmony GPU Freq"].value, 329.0);
@@ -513,7 +531,9 @@ mod tests {
         // 本真机恒 0 不产出（含衍生的功耗）。
         assert!(!sensors.keys().any(|key| key.contains("cluster0")));
         assert!(!sensors.keys().any(|key| key.contains("NPU")));
-        assert!(!sensors.keys().any(|key| key.to_lowercase().contains("voltage")));
+        assert!(!sensors
+            .keys()
+            .any(|key| key.to_lowercase().contains("voltage")));
         assert!(!sensors.contains_key("Harmony Power"));
 
         // 主进程内存细分（MB），用于与任务管理器对数。
@@ -606,12 +626,16 @@ mod tests {
     #[test]
     fn command_covers_full_metric_set() {
         assert_eq!(
-            sp_daemon_command(600, Some("com.huawei.it.works")),
+            sp_daemon_command(600, Some("com.huawei.it.works"), None),
             "SP_daemon -N 600 -c -g -f -t -p -r -net -d -PKG com.huawei.it.works"
         );
         assert_eq!(
-            sp_daemon_command(60, None),
+            sp_daemon_command(60, None, None),
             "SP_daemon -N 60 -c -g -f -t -p -r -net -d"
+        );
+        assert_eq!(
+            sp_daemon_command(60, None, Some(28645)),
+            "SP_daemon -N 60 -c -g -f -t -p -r -net -d -PID 28645"
         );
     }
 
@@ -621,7 +645,10 @@ mod tests {
             parse_pipe_u32("44831|44974|"),
             vec![Some(44831), Some(44974)]
         );
-        assert_eq!(parse_pipe_f64("0.5||1.0|"), vec![Some(0.5), None, Some(1.0)]);
+        assert_eq!(
+            parse_pipe_f64("0.5||1.0|"),
+            vec![Some(0.5), None, Some(1.0)]
+        );
         assert!(parse_pipe_f64("").is_empty());
 
         let map = parse_child_map("44831:276|44974:|45200:12|");
