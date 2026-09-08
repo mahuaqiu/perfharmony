@@ -185,6 +185,19 @@ pub fn build_system_sensors(block: &HashMap<String, String>) -> HashMap<String, 
         );
     }
 
+    // 主进程内存细分（KB→MB），诊断用：与任务管理器/手机管家对数时逐项比对。
+    const PROCESS_MEM_KEYS: [(&str, &str); 4] = [
+        ("nativeHeapPss", "Harmony Native Heap Pss"),
+        ("graphicPss", "Harmony Graphic Pss"),
+        ("arktsHeapPss", "Harmony ArkTS Heap Pss"),
+        ("swapPss", "Harmony Swap Pss"),
+    ];
+    for (sp_key, sensor_key) in PROCESS_MEM_KEYS {
+        if let Some(kb) = get_f64(block, sp_key) {
+            add_sensor(&mut raw, sensor_key, kb / KB_PER_MB, "MB");
+        }
+    }
+
     // GPU 负载（%）与频率（Hz→MHz）。
     if let Some(value) = get_f64(block, "gpuLoad") {
         add_sensor(&mut raw, "Harmony GPU Load", clamp_percent(value), "%");
@@ -254,11 +267,19 @@ pub fn bundle_base_name(name: &str) -> &str {
     }
 }
 
+/// 常驻内存（KB）= pss − swapPss；swapPss 缺失（NA/旧设备）时回退 pss。
+/// 口径对齐：任务管理器展示的是真驻留在物理内存里、归属该进程的部分。
+fn resident_kb(block: &HashMap<String, String>, pss_key: &str, swap_key: &str) -> Option<f64> {
+    let pss = get_f64(block, pss_key)?;
+    let swap = get_f64(block, swap_key).unwrap_or(0.0);
+    Some((pss - swap).max(0.0))
+}
+
 /// 把 -PKG 块转换为进程明细：主进程 + 竖线数组展开的子进程。
 ///
 /// 子进程无名字，命名为 `包名:pid`；ProcAppName 本身可能是子进程名
 /// （如 `com.xx:Native_xx`），取包名基名拼接，避免出现三段名；
-/// 内存取 pss（KB→MB），GPU 显存取 gpuPss/childGpuPss（KB→MB）。
+/// 内存取常驻口径 pss−swapPss（KB→MB），GPU 显存取 gpuPss/childGpuPss（KB→MB）。
 pub fn build_processes(block: &HashMap<String, String>) -> Option<Vec<ProcessInfo>> {
     let app_name = block.get("ProcAppName").map(|v| v.trim()).filter(|v| !v.is_empty())?;
     let main_pid: u32 = block.get("ProcId")?.trim().parse().ok()?;
@@ -272,6 +293,9 @@ pub fn build_processes(block: &HashMap<String, String>) -> Option<Vec<ProcessInf
             .unwrap_or(""),
     );
     let child_pss = parse_child_map(block.get("childPss").map(String::as_str).unwrap_or(""));
+    let child_swap_pss = parse_child_map(
+        block.get("childSwapPss").map(String::as_str).unwrap_or(""),
+    );
     let child_gpu_pss =
         parse_child_map(block.get("childGpuPss").map(String::as_str).unwrap_or(""));
 
@@ -281,7 +305,9 @@ pub fn build_processes(block: &HashMap<String, String>) -> Option<Vec<ProcessInf
         cpu_percent: get_f64(block, "ProcCpuUsage")
             .map(clamp_percent)
             .unwrap_or(0.0),
-        working_set_mb: get_f64(block, "pss").map(|kb| kb / KB_PER_MB).unwrap_or(0.0),
+        working_set_mb: resident_kb(block, "pss", "swapPss")
+            .map(|kb| kb / KB_PER_MB)
+            .unwrap_or(0.0),
         committed_memory_mb: 0.0,
         gpu_percent: 0.0,
         gpu_memory_mb: get_f64(block, "gpuPss")
@@ -308,7 +334,9 @@ pub fn build_processes(block: &HashMap<String, String>) -> Option<Vec<ProcessInf
                 .unwrap_or(0.0),
             working_set_mb: child_pss
                 .get(pid)
-                .map(|kb| kb / KB_PER_MB)
+                .map(|kb| {
+                    (kb - child_swap_pss.get(pid).copied().unwrap_or(0.0)).max(0.0) / KB_PER_MB
+                })
                 .unwrap_or(0.0),
             committed_memory_mb: 0.0,
             gpu_percent: 0.0,
@@ -487,6 +515,15 @@ mod tests {
         assert!(!sensors.keys().any(|key| key.contains("NPU")));
         assert!(!sensors.keys().any(|key| key.to_lowercase().contains("voltage")));
         assert!(!sensors.contains_key("Harmony Power"));
+
+        // 主进程内存细分（MB），用于与任务管理器对数。
+        assert_eq!(sensors["Harmony Native Heap Pss"].unit, "MB");
+        let native_kb = blocks[1]["nativeHeapPss"].trim().parse::<f64>().unwrap();
+        assert!((sensors["Harmony Native Heap Pss"].value - native_kb / 1024.0).abs() < 1e-9);
+        let swap_kb = blocks[1]["swapPss"].trim().parse::<f64>().unwrap();
+        assert!((sensors["Harmony Swap Pss"].value - swap_kb / 1024.0).abs() < 1e-9);
+        assert!(sensors.contains_key("Harmony Graphic Pss"));
+        assert!(sensors.contains_key("Harmony ArkTS Heap Pss"));
     }
 
     #[test]
@@ -516,15 +553,28 @@ mod tests {
         assert_eq!(processes.len(), 5);
         assert_eq!(processes[0].pid, 43950);
         assert_eq!(processes[0].name, "com.huawei.it.works");
-        assert!((processes[0].working_set_mb - 258695.0 / 1024.0).abs() < 1e-9);
+        // 常驻内存 = pss − swapPss：258695 − 92360。
+        assert!((processes[0].working_set_mb - (258695.0 - 92360.0) / 1024.0).abs() < 1e-9);
 
         let child = processes.iter().find(|item| item.pid == 44977).unwrap();
         assert_eq!(child.name, "com.huawei.it.works:44977");
         assert!((child.cpu_percent - 0.029499).abs() < 1e-9);
-        assert!((child.working_set_mb - 169559.0 / 1024.0).abs() < 1e-9);
+        // 子进程同样扣除 childSwapPss：169559 − 23696。
+        assert!((child.working_set_mb - (169559.0 - 23696.0) / 1024.0).abs() < 1e-9);
 
         let gpu_child = processes.iter().find(|item| item.pid == 44831).unwrap();
         assert!((gpu_child.gpu_memory_mb - 111212.0 / 1024.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn resident_memory_falls_back_to_pss_without_swappss() {
+        // 旧设备/NA 场景：swapPss 缺失时回退 pss 原值。
+        let mut block = HashMap::new();
+        block.insert("ProcAppName".to_string(), "com.app".to_string());
+        block.insert("ProcId".to_string(), "100".to_string());
+        block.insert("pss".to_string(), "20480".to_string());
+        let processes = build_processes(&block).unwrap();
+        assert!((processes[0].working_set_mb - 20.0).abs() < 1e-9);
     }
 
     #[test]
