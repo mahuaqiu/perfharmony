@@ -70,14 +70,19 @@ fn process_display_name(cmd: &str) -> String {
         return String::new();
     }
 
+    // 优先检查实际可执行文件，避免 SP_daemon 的 -PKG 参数被误识别成应用包名。
+    let executable = trimmed.split_whitespace().next().unwrap_or(trimmed);
+    let executable_name = extract_basename(executable);
+    if executable_name.eq_ignore_ascii_case("SP_daemon") {
+        return executable_name.to_string();
+    }
+
     // 在整段 CMD 中优先找包名，避免只拿到 `--flag` 或 `appspawn` 宿主进程名。
     for token in trimmed.split_whitespace() {
         if looks_like_bundle_name(token) {
             return token.to_string();
         }
     }
-
-    let executable = trimmed.split_whitespace().next().unwrap_or(trimmed);
     extract_basename(executable).to_string()
 }
 
