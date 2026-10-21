@@ -368,8 +368,8 @@ fn run_stream_loop<C: MonitorClient>(
 
 /// 模糊模式（-PKG）宿主侧精确过滤兜底：设备端按前缀匹配，同前缀包
 /// （com.a.test / com.a.test.abc）会混入子进程列表。规则：
-/// 主进程按真实进程名取包名基名全等比较；子进程以 ps -ef 映射为准，
-/// 映射缺失（新进程）保留，避免误杀。
+/// 主进程按真实进程名取包名基名全等比较；子进程用 ps -ef 映射补全显示名并做同样过滤，
+/// 映射缺失（采集期间新出现的进程）保留 SP_daemon 合成的包名:pid，避免误杀。
 pub(crate) fn filter_processes_by_package(
     processes: Vec<ProcessInfo>,
     package: &str,
@@ -378,10 +378,17 @@ pub(crate) fn filter_processes_by_package(
     let target = package.to_string();
     let mut kept = Vec::with_capacity(processes.len());
     for (index, process) in processes.into_iter().enumerate() {
+        let mut process = process;
         let real_name = if index == 0 {
             process.name.clone()
         } else {
-            pid_names.get(&process.pid).cloned().unwrap_or_default()
+            match pid_names.get(&process.pid) {
+                Some(name) if !name.trim().is_empty() => {
+                    process.name = name.clone();
+                    name.clone()
+                }
+                _ => String::new(),
+            }
         };
         if real_name.is_empty() || bundle_base_name(&real_name) == target {
             kept.push(process);
