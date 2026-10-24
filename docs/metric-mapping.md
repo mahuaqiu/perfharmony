@@ -15,7 +15,7 @@
 | `Harmony Net Download` | `KB/s` | 选定网卡集合的下行速率 | P1；节点待确认 |
 | `Harmony Battery Current Raw` | `raw` | current_now 原始值 | P2；单位待校准 |
 | `Harmony Battery Voltage Raw` | `raw` | voltage_now 原始值 | P2；单位待校准 |
-| `Harmony Power` | `W` | 电流乘电压的估算功耗 | P2；真机校准后再启用 |
+| `Harmony Power` | `W` | 电流乘电压的估算功耗；电压不支持的设备恒为 0W | P2；0W 表示电压未校准，非真实零功耗 |
 | `Harmony CPU Temp` | `°C` | 当前选中的 thermal zone 温度 | P2；zone 含义待确认 |
 | `Harmony GPU Usage` | `%` | GPU 使用率 | P2；命令和字段待确认 |
 

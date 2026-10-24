@@ -9,8 +9,9 @@
 //!
 //! 指标采用白名单制：真机实测恒 0 的字段（cluster0 / gpu 温度点 /
 //! cpuNFrequency）不在白名单内，直接丢弃；npu_thermal / voltageNow
-//! 在本真机恒 0（不支持），但官方透传 sysfs 留了口子，门控上报：
-//! 仅在有值（>0）设备上产出 NPU 温度 / 电压 / 功耗。
+//! 在本真机恒 0（不支持），但官方透传 sysfs 留了口子：NPU 温度 /
+//! 电压仅在有值（>0）设备上报；功耗只要有电流读数就产出，电压
+//! 不支持的设备按 0W 上报。
 //! 单位约定：系统内存 GB、进程内存 MB、频率 MHz、温度 ℃、电流 mA、
 //! 电压 V、功耗 W、网络 KB/s。
 
@@ -238,13 +239,13 @@ pub fn build_system_sensors(block: &HashMap<String, String>) -> HashMap<String, 
         add_sensor(&mut raw, "Harmony Battery Current", value, "mA");
     }
     // 电池电压（sysfs voltage_now µV→V）与功耗（W = V × A）：
-    // 本真机 voltageNow 恒 0（不支持），仅在有值设备上报。
-    if let Some(voltage) = get_f64(block, "voltageNow")
-        .map(|uv| uv.abs() / UV_PER_V)
-        .filter(|v| *v > 0.0)
-    {
-        add_sensor(&mut raw, "Harmony Battery Voltage", voltage, "V");
-        if let Some(ma) = current_ma.filter(|v| *v > 0.0) {
+    // 电压仅在有值（>0）设备上报；功耗只要有电流读数就产出，
+    // voltageNow 恒 0（不支持）的设备按 0W 上报，保持功耗序列恒存在。
+    if let Some(voltage) = get_f64(block, "voltageNow").map(|uv| uv.abs() / UV_PER_V) {
+        if voltage > 0.0 {
+            add_sensor(&mut raw, "Harmony Battery Voltage", voltage, "V");
+        }
+        if let Some(ma) = current_ma {
             add_sensor(&mut raw, "Harmony Power", voltage * ma / MA_PER_A, "W");
         }
     }
@@ -527,14 +528,15 @@ mod tests {
         assert_eq!(sensors["Harmony FPS"].value, 0.0);
         assert!(!sensors.contains_key("Harmony Refresh Rate"));
 
-        // 恒 0 字段：cluster0 不在白名单；npu_thermal/voltageNow 门控，
-        // 本真机恒 0 不产出（含衍生的功耗）。
+        // 恒 0 字段：cluster0 不在白名单；npu_thermal 门控不产出。
+        // voltageNow 恒 0：电压不产出，功耗按 0W 恒上报。
         assert!(!sensors.keys().any(|key| key.contains("cluster0")));
         assert!(!sensors.keys().any(|key| key.contains("NPU")));
         assert!(!sensors
             .keys()
             .any(|key| key.to_lowercase().contains("voltage")));
-        assert!(!sensors.contains_key("Harmony Power"));
+        assert_eq!(sensors["Harmony Power"].value, 0.0);
+        assert_eq!(sensors["Harmony Power"].unit, "W");
 
         // 主进程内存细分（MB），用于与任务管理器对数。
         assert_eq!(sensors["Harmony Native Heap Pss"].unit, "MB");
